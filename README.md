@@ -1,4 +1,4 @@
-# WadjaBudja — Product Backlog & Team Specification
+# WudjaBudja — Product Backlog & Team Specification
 
 **Project Purpose:** A unified, AI-powered travel planning tool designed to optimize group trips based on combined interests and budgets, eliminating the stress of designated "group planners."
 
