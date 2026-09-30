@@ -16,9 +16,9 @@
 | Team Member | Role | Total Pts | Core Responsibilities |
 | :--- | :--- | :--- | :--- |
 | **Miles** | **UI & Data Architect** | 26 | Database schema design (`schema.sql`), JavaFX Application Shell, and all major frontend UI components (Login, Forms, Dashboards). |
-| **Ethan** | **AI Integrator** | 26 | Gemini prompt engineering, constraint aggregation, Final Itinerary UI, and the secondary "Trip Briefing" LLM engine. |
+| **Ethan** | **AI Integrator** | 25 | Gemini prompt engineering, constraint aggregation, Final Itinerary UI, LLM Readiness Tracker, and the secondary "Trip Briefing" LLM engine. |
 | **George** | **Backend API Plumber** | 26 | Spring Boot REST controllers, automated HTML email dispatch, core API endpoints, and Maven dependency setup. |
-| **Lukas** | **Security & Algorithms** | 28 | Spring Security (JWT, BCrypt), Borda Count vote tallying engine, global API exception routing, and LLM error recovery. |
+| **Lukas** | **Security & Algorithms** | 26 | Spring Security (JWT, BCrypt), Borda Count vote tallying engine, global API exception routing, and LLM error recovery. |
 
 ---
 
@@ -26,13 +26,13 @@
 
 **Must-Have Features (MVP)**
 *   **Secure Authentication:** JWT-based login and registration for all users.
-*   **Trip Initialization:** "Trip Leader" defines destination, dates, and global budget.
+*   **Trip Initialization:** Key users define destination, dates, and global budget.
 *   **Email Invitations:** Automated SMTP email dispatch sending secure join codes.
 *   **Granular Preference Intake:** Users input granular constraints: Wake-up time, travel experience level, sub-city/travel radius constraints, and categorical budget breakdowns (e.g., transit vs. lodging).
 *   **LLM Itinerary Engine:** Gemini generates daily activities, automatically scheduling "split off" windows for companions with conflicting interests.
 *   **Borda Count Voting:** Ranked-choice point system (1st=3pts, 2nd=2pts, 3rd=1pt) to select activities democratically.
+*   **"Perfect Days" Finalization:** The finalized, conflict-free daily itineraries generated after consensus are formally presented as the group's "Perfect Days".
 *   **"Trip Briefing" Module:** A secondary AI-generated dashboard featuring language/customs education, localized packing lists, historical facts, tourist season advisories, and tailored souvenir recommendations.
-*   **"Perfect Day" Bypass:** An override button allowing the "Trip Leader" to generate a highly opinionated, single-day itinerary without group voting.
 
 **Nice-to-Have Features (Future Iterations / High Risk)**
 *   **Public Transit Routing:** Step-by-step navigation via Google Maps API.
@@ -78,7 +78,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **PREF-01** | Save Preferences API | George | P0 | 3 | `POST /api/trips/{id}/preferences`. Upserts budget breakdowns, wake time, experience level, and tags. |
 | **PREF-02** | Preference UI View | Miles | P1 | 5 | FXML view with sliders/checkboxes capturing the new Tier 1 data points (Wake Time, Radius). |
-| **PREF-03** | Readiness Tracker | Lukas | P2 | 2 | API endpoint verifying all invited users submitted preferences before enabling LLM generation. |
+| **PREF-03** | Readiness Tracker | Ethan | P2 | 2 | API endpoint verifying all invited users submitted preferences before enabling LLM generation. |
 
 ### Epic 5: Gemini Flash Itinerary Engine
 | ID | Task | Assignee | Priority | Pts | Acceptance Criteria / Technical Details |
@@ -94,16 +94,15 @@
 | **VOTE-01** | Fetch Candidate Options | George | P1 | 2 | `GET /api/trips/{id}/options`. Returns activities grouped by Day and Time block. |
 | **VOTE-02** | Submit Votes API | George | P1 | 3 | `POST /api/trips/{id}/votes`. Validates user hasn't voted. Saves rank points (1st=3, 2nd=2, 3rd=1). |
 | **VOTE-03** | Tally & Tie-Breaker | Lukas | P1 | 5 | Calculates `SUM(points)`. Tie-breaker selects the lowest `estimated_cost` option. Sets `is_final = true`. |
-| **FINAL-01** | Final Itinerary UI | Ethan | P1 | 5 | Fetches winning options. Renders chronological timeline. Displays Total Cost vs. Group Budget. |
+| **FINAL-01** | Final Itinerary UI | Ethan | P1 | 5 | Fetches winning options. Renders chronological timeline of the group's "Perfect Days". Displays Total Cost vs. Group Budget. |
 | **VOTE-04** | Voting Component UI | Miles | P2 | 5 | Drag-and-drop or dropdown UI to allow assigning 1st, 2nd, and 3rd rank points to options. |
 
 ### Epic 7: Trip Briefing & Context Expansion
 | ID | Task | Assignee | Priority | Pts | Acceptance Criteria / Technical Details |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **BRIEF-01** | Briefing AI Engine | Ethan | P2 | 5 | Secondary Gemini prompt generating language/customs, packing lists, facts, and tourist season warnings. |
-| **BRIEF-02** | Briefing APIs | George | P2 | 3 | `GET /api/trips/{id}/briefing` and `POST /api/trips/{id}/perfect-day` endpoints. |
-| **BRIEF-03** | Briefing UI Dashboard | Miles | P2 | 5 | JavaFX tab to display the briefing data cleanly, including the Key User "Perfect Day" trigger button. |
-| **BRIEF-04** | "Perfect Day" Bypass | Ethan | P2 | 3 | Business logic that generates a 1-day itinerary and automatically marks it `is_final = true`, bypassing votes. |
+| **BRIEF-02** | Briefing APIs | George | P2 | 3 | `GET /api/trips/{id}/briefing` endpoint to serve the contextual trip data. |
+| **BRIEF-03** | Briefing UI Dashboard | Miles | P2 | 5 | JavaFX tab to display the briefing data cleanly, categorized by Customs, Facts, and Packing. |
 
 ---
 
@@ -135,15 +134,3 @@
 1.  **Briefing Prompt Engineering (Ethan - 5 points):** Design the system prompt and JSON schema specifically for extracting cultural norms, weather expectations, and packing suggestions.
 2.  **Briefing API Controller (George - 3 points):** Create the `GET /api/trips/{id}/briefing` endpoint to serve this data to the client.
 3.  **JavaFX Briefing Dashboard (Miles - 5 points):** Design an FXML layout that cleanly separates the different briefing categories using JavaFX Accordions or TabPanes.
-
-### User Story 3: "Perfect Day" Override Bypass (Epic 7)
-**As a Key User**, I want the ability to bypass the group voting system entirely for a single day, **so that** I can force a highly opinionated, premium 1-day itinerary that I know the group will love without having to wait for consensus.
-
-**Acceptance Criteria:**
-*   The Briefing Dashboard includes a "Generate Perfect Day" button only visible to the Key User.
-*   Clicking the button sends a request to a dedicated backend endpoint.
-*   The endpoint calls Gemini to generate a 1-day itinerary and immediately saves it to the database with `is_final = true`, completely bypassing the `votes` table.
-*   The frontend instantly updates the Final Itinerary view with the new data.
-
-**Story Beats & Cost Estimation (Total: 3 Points / ~7 Developer Hours):**
-1.  **"Perfect Day" Backend Bypass Logic (Ethan - 3 points):** Build the `POST /api/trips/{id}/perfect-day` endpoint. Reuse Ethan's existing Gemini HTTP client logic, but write custom database logic that intercepts the response and instantly writes it to the `itinerary_options` table with the `is_final` flag permanently set to true.
