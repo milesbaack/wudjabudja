@@ -26,13 +26,13 @@
 
 **Must-Have Features (MVP)**
 *   **Secure Authentication:** JWT-based login and registration for all users.
-*   **Trip Initialization:** Key users define destination, dates, and global budget.
+*   **Trip Initialization:** "Trip Leader" defines destination, dates, and global budget.
 *   **Email Invitations:** Automated SMTP email dispatch sending secure join codes.
 *   **Granular Preference Intake:** Users input granular constraints: Wake-up time, travel experience level, sub-city/travel radius constraints, and categorical budget breakdowns (e.g., transit vs. lodging).
 *   **LLM Itinerary Engine:** Gemini generates daily activities, automatically scheduling "split off" windows for companions with conflicting interests.
 *   **Borda Count Voting:** Ranked-choice point system (1st=3pts, 2nd=2pts, 3rd=1pt) to select activities democratically.
 *   **"Trip Briefing" Module:** A secondary AI-generated dashboard featuring language/customs education, localized packing lists, historical facts, tourist season advisories, and tailored souvenir recommendations.
-*   **"Perfect Day" Bypass:** An override button allowing the Key User to generate a highly opinionated, single-day itinerary without group voting.
+*   **"Perfect Day" Bypass:** An override button allowing the "Trip Leader" to generate a highly opinionated, single-day itinerary without group voting.
 
 **Nice-to-Have Features (Future Iterations / High Risk)**
 *   **Public Transit Routing:** Step-by-step navigation via Google Maps API.
