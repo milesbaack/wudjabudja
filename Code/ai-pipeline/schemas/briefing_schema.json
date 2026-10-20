@@ -1,0 +1,39 @@
+{
+  "type": "object",
+  "properties": {
+    "customs": {
+      "type": "array", "minItems": 4, "maxItems": 6,
+      "items": { "type": "object", "properties": { "tip": { "type": "string" }, "why": { "type": "string" } }, "required": ["tip", "why"] }
+    },
+    "language": {
+      "type": "object",
+      "properties": {
+        "primary_language": { "type": "string" },
+        "phrases": {
+          "type": "array", "minItems": 5, "maxItems": 5,
+          "items": { "type": "object", "properties": { "phrase": { "type": "string" }, "meaning": { "type": "string" } }, "required": ["phrase", "meaning"] }
+        }
+      },
+      "required": ["primary_language", "phrases"]
+    },
+    "weather_note": { "type": "string" },
+    "packing_list": {
+      "type": "array", "minItems": 8, "maxItems": 12,
+      "items": { "type": "object", "properties": { "item": { "type": "string" }, "reason": { "type": "string" } }, "required": ["item", "reason"] }
+    },
+    "historical_facts": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "string" } },
+    "season_advisory": {
+      "type": "object",
+      "properties": {
+        "crowd_level": { "type": "string", "enum": ["low", "medium", "high"] },
+        "summary": { "type": "string" }
+      },
+      "required": ["crowd_level", "summary"]
+    },
+    "souvenirs": {
+      "type": "array",
+      "items": { "type": "object", "properties": { "participant_id": { "type": "string" }, "idea": { "type": "string" }, "estimated_cost_usd": { "type": "number", "minimum": 0 } }, "required": ["participant_id", "idea", "estimated_cost_usd"] }
+    }
+  },
+  "required": ["customs", "language", "weather_note", "packing_list", "historical_facts", "season_advisory", "souvenirs"]
+}

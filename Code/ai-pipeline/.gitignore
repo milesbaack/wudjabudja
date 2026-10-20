@@ -1,0 +1,6 @@
+# Test output from GeminiTest.java
+output/
+
+# Never commit API keys
+.env
+*.key

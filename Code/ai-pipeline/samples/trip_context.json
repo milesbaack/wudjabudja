@@ -1,0 +1,31 @@
+{
+  "trip_id": "t_102",
+  "destination": { "city": "San Diego", "sub_city": "North Park" },
+  "start_date": "2027-03-12",
+  "end_date": "2027-03-14",
+  "num_days": 3,
+  "trip_type": "guys_trip",
+  "global_budget_usd": 2400,
+  "participants": [
+    {
+      "participant_id": "p1",
+      "role": "key",
+      "wake_time": "07:30",
+      "experience_level": "intermediate",
+      "max_radius_miles": 15,
+      "budgets_usd": { "lodging": 300, "transit": 60, "food": 150, "activities": 120 },
+      "per_block_cap_usd": 30,
+      "interests": ["craft beer", "baseball", "hiking"]
+    },
+    {
+      "participant_id": "p2",
+      "role": "secondary",
+      "wake_time": "10:00",
+      "experience_level": "novice",
+      "max_radius_miles": 8,
+      "budgets_usd": { "lodging": 250, "transit": 40, "food": 200, "activities": 80 },
+      "per_block_cap_usd": 31,
+      "interests": ["food tours", "beaches", "nightlife"]
+    }
+  ]
+}
