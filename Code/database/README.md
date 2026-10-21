@@ -1,6 +1,6 @@
 # WudjaBudja Database Reference Guide (PostgreSQL)
 
-Welcome to the WudjaBudja database! This guide is designed for the whole team (Miles, Ethan, George, Lukas). If you have never worked with PostgreSQL before, don't worry—this doc covers how the database is structured, how to run it, and practical query examples for each of our sprint tasks.
+Welcome to the WudjaBudja database! This guide is designed for the whole team. If you have never worked with PostgreSQL before, don't worry—this doc covers how the database is structured, how to run it, and practical query examples for each of our sprint tasks.
 
 ---
 
