@@ -1,2 +1,11 @@
 .DS_Store
 */.DS_Store
+
+# Maven build output
+target/
+**/target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
