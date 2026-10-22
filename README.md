@@ -15,7 +15,7 @@
 
 | Team Member | Role | Total Pts | Core Responsibilities |
 | :--- | :--- | :--- | :--- |
-| **Miles** | **UI & Data Architect** | 26 | Database schema design (`schema.sql`), JavaFX Application Shell, and all major frontend UI components (Login, Forms, Dashboards). |
+| **Miles** | **UI & Data Architect** | 28 | Database schema design (`schema.sql`), JavaFX Application Shell, and all major frontend UI components (Login, Forms, Dashboards). |
 | **Ethan** | **AI Integrator** | 27 | Gemini prompt engineering, constraint aggregation, Final Itinerary UI, LLM Readiness Tracker, and the secondary "Trip Briefing" LLM engine. |
 | **George** | **Backend API Plumber** | 26 | Spring Boot REST controllers, automated HTML email dispatch, core API endpoints, and Maven dependency setup. |
 | **Lukas** | **Security & Algorithms** | 26 | Spring Security (JWT, BCrypt), Borda Count vote tallying engine, global API exception routing, and LLM error recovery. |
@@ -54,7 +54,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **INFRA-01** | PostgreSQL Schema | Miles | P0 | 3 | Create `schema.sql`: `users`, `trips`, `trip_participants`, `user_preferences`, `itinerary_options`, `votes`. |
 | **INFRA-02** | Spring Boot Init | George | P0 | 2 | Scaffold API. Add dependencies: Web, JPA, PostgreSQL, Security, Validation, JavaMailSender. |
-| **INFRA-03** | JavaFX Maven Setup | George | P0 | 2 | Configure `pom.xml` for Jackson JSON parsing and Java 11 `HttpClient`. |
+| **INFRA-03** | JavaFX Maven Setup | Miles | P0 | 2 | Configure `pom.xml` for Jackson JSON parsing and Java 11 `HttpClient`. |
 | **INFRA-04** | Global Exception Handler | Lukas | P1 | 3 | `@ControllerAdvice` to catch standard errors (404, 403, 500) and return them as structured JSON. |
 | **INFRA-05** | AI infrastructure | Ethan | P0 | 2 | create google account for project and gemini API key. Start working on possible prompts. Design AI prompting pipeline. |
 
