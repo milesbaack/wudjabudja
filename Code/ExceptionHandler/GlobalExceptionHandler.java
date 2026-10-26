@@ -1,5 +1,6 @@
 package org.example;
 
+import java.time.Instant;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -7,15 +8,20 @@ import org.springframework.web.server.ResponseStatusException;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<String> handleBadRequest(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(ex.getMessage());
-    }
+    public record ErrorResponse(int status, String message, Instant timestamp) {}
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<String> handleStatusException(ResponseStatusException ex) {
+    public ResponseEntity<ErrorResponse> handleStatusException(
+            ResponseStatusException ex) {
+
+        ErrorResponse error = new ErrorResponse(
+                ex.getStatusCode().value(),
+                ex.getReason(),
+                Instant.now() // UTC Time
+        );
+
         return ResponseEntity
                 .status(ex.getStatusCode())
-                .body(ex.getReason());
+                .body(error);
     }
 }
