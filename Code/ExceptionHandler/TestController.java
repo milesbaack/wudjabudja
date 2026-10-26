@@ -31,5 +31,10 @@ public class TestController {
         throw new ResponseStatusException(
                 HttpStatus.INTERNAL_SERVER_ERROR, "Something went wrong");
     }
+    @GetMapping("/test504")
+    public String test504() {
+        throw new ResponseStatusException(
+                HttpStatus.GATEWAY_TIMEOUT, "Something went wrong");
+    }
 
 }
