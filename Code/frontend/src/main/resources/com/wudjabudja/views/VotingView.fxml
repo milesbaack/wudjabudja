@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      spacing="16.0"
+      style="-fx-background-color: #f8fafc;">
+    <padding>
+        <Insets top="32.0" right="36.0" bottom="32.0" left="36.0" />
+    </padding>
+
+    <Label text="Consensus Voting (VOTE-04)" textFill="#0f172a">
+        <font>
+            <Font name="System Bold" size="24.0" />
+        </font>
+    </Label>
+    <Label text="Rank candidate activities using Borda count (1st=3pts, 2nd=2pts, 3rd=1pt)." textFill="#64748b">
+        <font>
+            <Font size="14.0" />
+        </font>
+    </Label>
+</VBox>

@@ -47,6 +47,9 @@ public class LoginController {
         // Passed client validation!
         // In Sprint 2 (AUTH-02), Lukas's Auth Manager will send POST /api/auth/login here.
         System.out.println("Client validation passed! Ready to authenticate: " + email);
+
+        // Transition into the Main Application Shell (NAV-01)
+        switchScene(event, "/com/wudjabudja/views/MainView.fxml");
     }
 
     @FXML
