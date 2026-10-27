@@ -63,7 +63,7 @@
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **AUTH-01** | Register API | Lukas | P0 | 5 | `POST /api/auth/register`. Hash passwords using BCrypt. Validate email uniqueness. |
 | **AUTH-02** | Login API | Lukas | P0 | 5 | `POST /api/auth/login`. Verify credentials, generate 24-hour JWT. |
-| **AUTH-03** | JavaFX Auth Manager | Lukas | P0 | 3 | Singleton class to store JWT in memory and attach as `Bearer` header to API calls. |
+| **AUTH-03** | JavaFX Auth Manager | Ethan | P0 | 3 | Singleton class to store JWT in memory and attach as `Bearer` header to API calls. |
 | **AUTH-04** | Login/Reg Views | Miles | P0 | 5 | FXML views with client-side validation (passwords match, non-empty fields). |
 
 ### Sprint 3: Navigation & Trip Setup
