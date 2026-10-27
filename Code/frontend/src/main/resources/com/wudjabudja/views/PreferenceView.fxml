@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Slider?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.PreferenceController"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+
+    <content>
+        <VBox spacing="20.0" style="-fx-background-color: #f8fafc;">
+            <padding>
+                <Insets top="28.0" right="36.0" bottom="40.0" left="36.0" />
+            </padding>
+
+            <!-- Page Title -->
+            <VBox spacing="4.0">
+                <Label text="Personal Travel Preferences" textFill="#0f172a">
+                    <font>
+                        <Font name="System Bold" size="24.0" />
+                    </font>
+                </Label>
+                <Label text="Set your personal constraints so the AI engine tailors daily itineraries around your schedule, budget, and travel style."
+                       textFill="#64748b" wrapText="true">
+                    <font>
+                        <Font size="14.0" />
+                    </font>
+                </Label>
+            </VBox>
+
+            <!-- Card 1: Schedule & Mobility Constraints -->
+            <VBox spacing="16.0"
+                  style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <Label text="⏰ Daily Schedule &amp; Mobility" textFill="#0f172a">
+                    <font>
+                        <Font name="System Bold" size="16.0" />
+                    </font>
+                </Label>
+
+                <!-- Wake-Up Time Input -->
+                <VBox spacing="6.0">
+                    <Label text="Preferred Wake-Up Time" textFill="#334155">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                    <Label text="Morning activities won't be scheduled before you're awake and ready." textFill="#64748b">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                    <ComboBox fx:id="wakeTimeCombo" prefWidth="220.0" prefHeight="36.0"
+                              promptText="Select wake time..." />
+                </VBox>
+
+                <Region prefHeight="1.0" style="-fx-background-color: #f1f5f9;" />
+
+                <!-- Travel Radius Slider -->
+                <VBox spacing="8.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Maximum Exploration Radius" textFill="#334155">
+                            <font><Font name="System Bold" size="13.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="radiusValueLabel" text="15 miles" textFill="#2563eb">
+                            <font><Font name="System Bold" size="14.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Label text="How far from your base hotel you're willing to travel for single activities." textFill="#64748b">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                    <Slider fx:id="radiusSlider" min="1.0" max="50.0" value="15.0"
+                            blockIncrement="1.0" majorTickUnit="10.0" showTickMarks="true" />
+                </VBox>
+            </VBox>
+
+            <!-- Card 2: Travel Experience Level -->
+            <VBox spacing="14.0"
+                  style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <Label text="🚶 Travel Experience Level" textFill="#0f172a">
+                    <font>
+                        <Font name="System Bold" size="16.0" />
+                    </font>
+                </Label>
+                <Label text="Select how comfortable you are navigating unfamiliar cities and transit networks." textFill="#64748b">
+                    <font><Font size="12.0" /></font>
+                </Label>
+
+                <fx:define>
+                    <ToggleGroup fx:id="experienceGroup" />
+                </fx:define>
+
+                <VBox spacing="10.0">
+                    <RadioButton fx:id="noviceRadio" text="Novice — Prefer easy-to-reach landmarks, guided walking paths, and English-friendly spots"
+                                 toggleGroup="$experienceGroup" textFill="#334155" />
+                    <RadioButton fx:id="intermediateRadio" text="Intermediate — Comfortable with metro transfers, local neighborhoods, and self-guided exploration"
+                                 toggleGroup="$experienceGroup" selected="true" textFill="#334155" />
+                    <RadioButton fx:id="expertRadio" text="Expert — Confident with off-the-beaten-path destinations, regional rail, and local language barriers"
+                                 toggleGroup="$experienceGroup" textFill="#334155" />
+                </VBox>
+            </VBox>
+
+            <!-- Card 3: Categorical Budget Allocation -->
+            <VBox spacing="16.0"
+                  style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <HBox alignment="CENTER_LEFT">
+                    <Label text="💰 Categorical Budget Allocation" textFill="#0f172a">
+                        <font>
+                            <Font name="System Bold" size="16.0" />
+                        </font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="totalBudgetLabel" text="\$710 total estimated" textFill="#059669">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                </HBox>
+                <Label text="Guide the AI on how to distribute your spending across key trip categories." textFill="#64748b">
+                    <font><Font size="12.0" /></font>
+                </Label>
+
+                <!-- Transit Slider -->
+                <VBox spacing="4.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Transit &amp; Local Transportation (Subways, Buses, Shinkansen passes)" textFill="#475569">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="transitValueLabel" text="\$60" textFill="#0f172a">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Slider fx:id="transitSlider" min="0.0" max="300.0" value="60.0"
+                            blockIncrement="10.0" majorTickUnit="50.0" />
+                </VBox>
+
+                <!-- Lodging Slider -->
+                <VBox spacing="4.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Lodging &amp; Accommodation Share" textFill="#475569">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="lodgingValueLabel" text="\$300" textFill="#0f172a">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Slider fx:id="lodgingSlider" min="0.0" max="1000.0" value="300.0"
+                            blockIncrement="25.0" majorTickUnit="200.0" />
+                </VBox>
+
+                <!-- Food Slider -->
+                <VBox spacing="4.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Food &amp; Dining (Street stalls, Izakayas, Ramen, Fine dining)" textFill="#475569">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="foodValueLabel" text="\$200" textFill="#0f172a">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Slider fx:id="foodSlider" min="0.0" max="800.0" value="200.0"
+                            blockIncrement="20.0" majorTickUnit="150.0" />
+                </VBox>
+
+                <!-- Activities Slider -->
+                <VBox spacing="4.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Activities, Entry Tickets &amp; Experiences" textFill="#475569">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="activitiesValueLabel" text="\$150" textFill="#0f172a">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Slider fx:id="activitiesSlider" min="0.0" max="600.0" value="150.0"
+                            blockIncrement="15.0" majorTickUnit="100.0" />
+                </VBox>
+
+                <Region prefHeight="1.0" style="-fx-background-color: #f1f5f9;" />
+
+                <!-- Per-Activity Price Cap Slider -->
+                <VBox spacing="4.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Maximum Cap for a Single Activity" textFill="#334155">
+                            <font><Font name="System Bold" size="13.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label fx:id="perBlockCapLabel" text="\$35 / activity" textFill="#2563eb">
+                            <font><Font name="System Bold" size="13.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Label text="The AI will avoid proposing single ticketed experiences exceeding this cost." textFill="#64748b">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                    <Slider fx:id="perBlockCapSlider" min="10.0" max="150.0" value="35.0"
+                            blockIncrement="5.0" majorTickUnit="25.0" />
+                </VBox>
+            </VBox>
+
+            <!-- Card 4: Interests & Vibe Checkboxes -->
+            <VBox spacing="14.0"
+                  style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <Label text="🎯 Interests &amp; Activity Vibes" textFill="#0f172a">
+                    <font>
+                        <Font name="System Bold" size="16.0" />
+                    </font>
+                </Label>
+                <Label text="Select what types of group experiences you are enthusiastic about:" textFill="#64748b">
+                    <font><Font size="12.0" /></font>
+                </Label>
+
+                <HBox spacing="32.0">
+                    <VBox spacing="10.0">
+                        <CheckBox fx:id="interestFood" text="🍜 Street Food &amp; Dining" selected="true" textFill="#334155" />
+                        <CheckBox fx:id="interestCulture" text="⛩️ Temples &amp; Historical Sites" selected="true" textFill="#334155" />
+                        <CheckBox fx:id="interestOutdoors" text="🌲 Nature, Parks &amp; Hikes" textFill="#334155" />
+                        <CheckBox fx:id="interestNightlife" text="🍸 Nightlife &amp; Izakayas" selected="true" textFill="#334155" />
+                    </VBox>
+                    <VBox spacing="10.0">
+                        <CheckBox fx:id="interestShopping" text="🛍️ Shopping &amp; Markets" textFill="#334155" />
+                        <CheckBox fx:id="interestRelaxation" text="♨️ Onsens, Spas &amp; Relaxation" textFill="#334155" />
+                        <CheckBox fx:id="interestPopCulture" text="🎮 Tech, Pop Culture &amp; Arcades" selected="true" textFill="#334155" />
+                    </VBox>
+                </HBox>
+            </VBox>
+
+            <!-- Bottom Action Controls & Status Feedback -->
+            <VBox spacing="12.0">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Button fx:id="savePreferencesBtn" text="Save Travel Preferences"
+                            onAction="#handleSavePreferences"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 6; -fx-cursor: hand;" />
+
+                    <Button text="Reset to Defaults" onAction="#handleReset"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-text-fill: #475569; -fx-padding: 9 18; -fx-cursor: hand;" />
+
+                    <Region HBox.hgrow="ALWAYS" />
+
+                    <Label fx:id="statusLabel" text="" wrapText="true">
+                        <font><Font size="13.0" /></font>
+                    </Label>
+                </HBox>
+            </VBox>
+
+        </VBox>
+    </content>
+</ScrollPane>
