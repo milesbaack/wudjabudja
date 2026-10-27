@@ -65,7 +65,9 @@ public class RegisterController {
         clearError();
         System.out.println("Registration valid for: " + fullName + " (" + email + ")");
         
-        // In Sprint 2 (AUTH-01), this triggers POST /api/auth/register
+        // In Sprint 2 (AUTH-01), this triggers POST /api/auth/register.
+        // For local UI testing, transition directly into the Main App Shell (NAV-01):
+        switchScene(event, "/com/wudjabudja/views/MainView.fxml");
     }
 
     @FXML
