@@ -2,25 +2,56 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
-      spacing="16.0"
-      style="-fx-background-color: #f8fafc;">
-    <padding>
-        <Insets top="32.0" right="36.0" bottom="32.0" left="36.0" />
-    </padding>
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
 
-    <Label text="Trip Briefing Dashboard (BRIEF-03)" textFill="#0f172a">
-        <font>
-            <Font name="System Bold" size="24.0" />
-        </font>
-    </Label>
-    <Label text="AI-generated localized customs, packing lists, weather advisories, and facts." textFill="#64748b">
-        <font>
-            <Font size="14.0" />
-        </font>
-    </Label>
-</VBox>
+    <content>
+        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
+            <padding>
+                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
+            </padding>
+
+            <VBox spacing="4.0">
+                <Label text="Trip Briefing — Tokyo, Japan 🇯🇵" textFill="#0f172a">
+                    <font><Font name="System Bold" size="24.0" /></font>
+                </Label>
+                <Label text="Essential cultural etiquette, packing suggestions, and local tips before you depart." textFill="#64748b">
+                    <font><Font size="14.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Cards for Customs, Packing, Facts -->
+            <VBox spacing="16.0">
+                <!-- Cultural Customs Card -->
+                <VBox spacing="8.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 20;">
+                    <Label text="⛩️ Cultural Customs &amp; Etiquette" textFill="#0f172a">
+                        <font><Font name="System Bold" size="16.0" /></font>
+                    </Label>
+                    <Label text="• Tipping is not customary in Japan; exceptional service is included in your bill.\n• Carry cash or Suica/Pasmo IC cards; many local ramen shops only accept physical currency.\n• Remove your shoes before entering traditional ryokans, temple halls, and homes."
+                           textFill="#475569" wrapText="true">
+                        <font><Font size="13.0" /></font>
+                    </Label>
+                </VBox>
+
+                <!-- Weather & Packing Card -->
+                <VBox spacing="8.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 20;">
+                    <Label text="🎒 What to Pack for November" textFill="#0f172a">
+                        <font><Font name="System Bold" size="16.0" /></font>
+                    </Label>
+                    <Label text="• Light layers: Crisp autumn days (14–18°C) and cooler evenings (8–10°C).\n• Very comfortable slip-on walking shoes (you will easily walk 15,000–20,000 steps daily).\n• Portable power bank for continuous Google Maps navigation and Suica phone tapping."
+                           textFill="#475569" wrapText="true">
+                        <font><Font size="13.0" /></font>
+                    </Label>
+                </VBox>
+            </VBox>
+        </VBox>
+    </content>
+</ScrollPane>

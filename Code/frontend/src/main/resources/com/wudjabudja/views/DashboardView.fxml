@@ -3,117 +3,273 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
-      spacing="24.0"
-      style="-fx-background-color: #f8fafc;">
-    <padding>
-        <Insets top="32.0" right="36.0" bottom="32.0" left="36.0" />
-    </padding>
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.DashboardController"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
 
-    <!-- Welcome Header -->
-    <VBox spacing="4.0">
-        <Label text="Welcome to WudjaBudja" textFill="#0f172a">
-            <font>
-                <Font name="System Bold" size="26.0" />
-            </font>
-        </Label>
-        <Label text="Collaborative AI-powered travel planning for groups" textFill="#64748b">
-            <font>
-                <Font size="14.0" />
-            </font>
-        </Label>
-    </VBox>
-
-    <!-- Overview / Quick Actions Cards -->
-    <HBox spacing="16.0">
-        <!-- Active Trip Card -->
-        <VBox prefWidth="340.0" spacing="12.0"
-              style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 2);">
+    <content>
+        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
             <padding>
-                <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
             </padding>
-            <HBox alignment="CENTER_LEFT" spacing="8.0">
-                <Label text="✈️ Current Trip" textFill="#0f172a">
-                    <font>
-                        <Font name="System Bold" size="16.0" />
-                    </font>
-                </Label>
+
+            <!-- Dashboard Greeting Header -->
+            <HBox alignment="CENTER_LEFT" spacing="16.0">
+                <VBox spacing="4.0">
+                    <Label text="Welcome back, Miles 👋" textFill="#0f172a">
+                        <font>
+                            <Font name="System Bold" size="24.0" />
+                        </font>
+                    </Label>
+                    <Label text="Here's where things stand for your upcoming group getaway." textFill="#64748b">
+                        <font>
+                            <Font size="14.0" />
+                        </font>
+                    </Label>
+                </VBox>
                 <Region HBox.hgrow="ALWAYS" />
-                <Label text="Sprint 3" style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-padding: 2 8; -fx-background-radius: 12;">
-                    <font>
-                        <Font size="11.0" />
-                    </font>
-                </Label>
+                <Button text="+ Plan New Trip" onAction="#goToTrips"
+                        style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 16; -fx-background-radius: 6; -fx-cursor: hand;" />
             </HBox>
-            <Label text="Tokyo Adventure 2026" textFill="#1e293b">
-                <font>
-                    <Font name="System Bold" size="18.0" />
-                </font>
-            </Label>
-            <Label text="Dates: Nov 12 - Nov 19, 2026\nBudget: $2,500 / person\nGroup: 4 Travelers"
-                   textFill="#475569" wrapText="true">
-                <font>
-                    <Font size="13.0" />
-                </font>
-            </Label>
-        </VBox>
 
-        <!-- Preference Status Card -->
-        <VBox prefWidth="340.0" spacing="12.0"
-              style="-fx-background-color: white; -fx-background-radius: 10; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 8, 0, 0, 2);">
-            <padding>
-                <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
-            </padding>
-            <HBox alignment="CENTER_LEFT" spacing="8.0">
-                <Label text="⚙️ Preferences" textFill="#0f172a">
-                    <font>
-                        <Font name="System Bold" size="16.0" />
-                    </font>
-                </Label>
+            <!-- Primary Active Trip Hero Banner -->
+            <VBox spacing="16.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.04), 10, 0, 0, 3);">
+                <padding>
+                    <Insets top="24.0" right="24.0" bottom="24.0" left="24.0" />
+                </padding>
+
+                <!-- Trip Top Meta -->
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Label text="CURRENT TRIP" style="-fx-background-color: #e0f2fe; -fx-text-fill: #0369a1; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 20;">
+                        <font>
+                            <Font size="11.0" />
+                        </font>
+                    </Label>
+                    <Label text="Join Code: WUDJA-TOKYO" style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-padding: 4 10; -fx-background-radius: 6; -fx-font-family: monospace;">
+                        <font>
+                            <Font size="11.0" />
+                        </font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label text="Departing in 19 days" textFill="#059669">
+                        <font>
+                            <Font name="System Bold" size="12.0" />
+                        </font>
+                    </Label>
+                </HBox>
+
+                <!-- Trip Title & Destination -->
+                <VBox spacing="4.0">
+                    <Label text="🇯🇵 Tokyo &amp; Kyoto Autumn Explorer" textFill="#0f172a">
+                        <font>
+                            <Font name="System Bold" size="22.0" />
+                        </font>
+                    </Label>
+                    <Label text="Nov 14 – Nov 22, 2026 • 8 Days • 4 Travelers (Miles, George, Lukas, Ethan)" textFill="#475569">
+                        <font>
+                            <Font size="13.0" />
+                        </font>
+                    </Label>
+                </VBox>
+
+                <!-- Quick Trip Stats Row -->
+                <HBox spacing="20.0" style="-fx-background-color: #f8fafc; -fx-background-radius: 8; -fx-padding: 12 16;">
+                    <VBox spacing="2.0">
+                        <Label text="Estimated Budget" textFill="#64748b">
+                            <font><Font size="11.0" /></font>
+                        </Label>
+                        <Label text="\$2,200 / person" textFill="#0f172a">
+                            <font><Font name="System Bold" size="14.0" /></font>
+                        </Label>
+                    </VBox>
+                    <Region prefWidth="1.0" style="-fx-background-color: #cbd5e1;" />
+                    <VBox spacing="2.0">
+                        <Label text="Local Weather" textFill="#64748b">
+                            <font><Font size="11.0" /></font>
+                        </Label>
+                        <Label text="16°C / 61°F • Mild" textFill="#0f172a">
+                            <font><Font name="System Bold" size="14.0" /></font>
+                        </Label>
+                    </VBox>
+                    <Region prefWidth="1.0" style="-fx-background-color: #cbd5e1;" />
+                    <VBox spacing="2.0">
+                        <Label text="Currency" textFill="#64748b">
+                            <font><Font size="11.0" /></font>
+                        </Label>
+                        <Label text="1 USD ≈ 152 JPY" textFill="#0f172a">
+                            <font><Font name="System Bold" size="14.0" /></font>
+                        </Label>
+                    </VBox>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Button text="View Trip Details →" onAction="#goToTrips"
+                            style="-fx-background-color: transparent; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-cursor: hand;" />
+                </HBox>
+
+                <!-- Group Readiness Progress -->
+                <VBox spacing="8.0">
+                    <HBox alignment="CENTER_LEFT">
+                        <Label text="Group Intake Status:" textFill="#334155">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                        <Region prefWidth="6.0" />
+                        <Label text="3 of 4 travelers have submitted their travel preferences" textFill="#64748b">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label text="75% Ready" textFill="#2563eb">
+                            <font><Font name="System Bold" size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <ProgressBar progress="0.75" maxWidth="Infinity" prefHeight="8.0"
+                                 style="-fx-accent: #2563eb;" />
+                </VBox>
+            </VBox>
+
+            <!-- Two-Column Cards: Traveler Preferences & Group Activity -->
+            <HBox spacing="20.0">
+
+                <!-- Left Card: Your Travel Style / Preferences -->
+                <VBox HBox.hgrow="ALWAYS" spacing="14.0" prefWidth="380.0"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                    <padding>
+                        <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <Label text="⚙️ Your Travel Profile" textFill="#0f172a">
+                            <font>
+                                <Font name="System Bold" size="15.0" />
+                            </font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label text="Draft Saved" style="-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-padding: 3 8; -fx-background-radius: 12;">
+                            <font><Font size="11.0" /></font>
+                        </Label>
+                    </HBox>
+
+                    <Label text="Fine-tune your personal morning schedule, exploration radius, and budget priorities so the AI tailors activities you'll actually enjoy."
+                           textFill="#64748b" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+
+                    <VBox spacing="8.0" style="-fx-background-color: #f8fafc; -fx-padding: 12; -fx-background-radius: 8;">
+                        <HBox alignment="CENTER_LEFT">
+                            <Label text="⏰ Wake-up Time:" textFill="#475569"><font><Font size="12.0" /></font></Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label text="8:30 AM" textFill="#0f172a"><font><Font name="System Bold" size="12.0" /></font></Label>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT">
+                            <Label text="🚶 Experience Level:" textFill="#475569"><font><Font size="12.0" /></font></Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label text="Moderate Explorer" textFill="#0f172a"><font><Font name="System Bold" size="12.0" /></font></Label>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT">
+                            <Label text="📍 Max Radius:" textFill="#475569"><font><Font size="12.0" /></font></Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label text="15 miles from base" textFill="#0f172a"><font><Font name="System Bold" size="12.0" /></font></Label>
+                        </HBox>
+                        <HBox alignment="CENTER_LEFT">
+                            <Label text="🍜 Top Interests:" textFill="#475569"><font><Font size="12.0" /></font></Label>
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label text="Street Food, Architecture" textFill="#0f172a"><font><Font name="System Bold" size="12.0" /></font></Label>
+                        </HBox>
+                    </VBox>
+
+                    <Button text="Update Preferences →" onAction="#goToPreferences"
+                            maxWidth="Infinity"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 9 16; -fx-background-radius: 6; -fx-cursor: hand;" />
+                </VBox>
+
+                <!-- Right Card: Itinerary Sneak Peek / Voting -->
+                <VBox HBox.hgrow="ALWAYS" spacing="14.0" prefWidth="380.0"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                    <padding>
+                        <Insets top="20.0" right="20.0" bottom="20.0" left="20.0" />
+                    </padding>
+
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <Label text="🗳️ Group Activity Voting" textFill="#0f172a">
+                            <font>
+                                <Font name="System Bold" size="15.0" />
+                            </font>
+                        </Label>
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Label text="Next Up" style="-fx-background-color: #e0e7ff; -fx-text-fill: #3730a3; -fx-padding: 3 8; -fx-background-radius: 12;">
+                            <font><Font size="11.0" /></font>
+                        </Label>
+                    </HBox>
+
+                    <Label text="Once everyone submits their constraints, the group will vote on ranked options for each day block to build your 'Perfect Days'."
+                           textFill="#64748b" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+
+                    <VBox spacing="8.0">
+                        <!-- Activity Teaser 1 -->
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #f8fafc; -fx-padding: 10; -fx-background-radius: 6;">
+                            <Label text="Day 2" style="-fx-background-color: #e2e8f0; -fx-padding: 2 6; -fx-background-radius: 4;">
+                                <font><Font name="System Bold" size="10.0" /></font>
+                            </Label>
+                            <VBox spacing="1.0">
+                                <Label text="Senso-ji Temple &amp; Asakusa Street Food" textFill="#1e293b">
+                                    <font><Font name="System Bold" size="12.0" /></font>
+                                </Label>
+                                <Label text="Morning • Culture &amp; Walking" textFill="#64748b">
+                                    <font><Font size="11.0" /></font>
+                                </Label>
+                            </VBox>
+                        </HBox>
+
+                        <!-- Activity Teaser 2 -->
+                        <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #f8fafc; -fx-padding: 10; -fx-background-radius: 6;">
+                            <Label text="Day 3" style="-fx-background-color: #e2e8f0; -fx-padding: 2 6; -fx-background-radius: 4;">
+                                <font><Font name="System Bold" size="10.0" /></font>
+                            </Label>
+                            <VBox spacing="1.0">
+                                <Label text="Shibuya Sky Sunset &amp; Omoide Yokocho" textFill="#1e293b">
+                                    <font><Font name="System Bold" size="12.0" /></font>
+                                </Label>
+                                <Label text="Evening • Sightseeing &amp; Nightlife" textFill="#64748b">
+                                    <font><Font size="11.0" /></font>
+                                </Label>
+                            </VBox>
+                        </HBox>
+                    </VBox>
+
+                    <Button text="Preview Voting System →" onAction="#goToVoting"
+                            maxWidth="Infinity"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 8 16; -fx-cursor: hand;" />
+                </VBox>
+            </HBox>
+
+            <!-- Bottom Cultural Briefing Quick Card -->
+            <HBox alignment="CENTER_LEFT" spacing="16.0"
+                  style="-fx-background-color: #f1f5f9; -fx-background-radius: 10; -fx-padding: 16 20;">
+                <Label text="💡" style="-fx-font-size: 20px;" />
+                <VBox spacing="2.0">
+                    <Label text="Did You Know? Local Etiquette in Tokyo" textFill="#0f172a">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                    <Label text="Eating or drinking while walking is generally frowned upon. Most people finish their snack right next to the vending machine or stall."
+                           textFill="#475569" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </VBox>
                 <Region HBox.hgrow="ALWAYS" />
-                <Label text="Pending" style="-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-padding: 2 8; -fx-background-radius: 12;">
-                    <font>
-                        <Font size="11.0" />
-                    </font>
-                </Label>
+                <Button text="Read Trip Briefing →" onAction="#goToBriefing"
+                        style="-fx-background-color: white; -fx-text-fill: #0f172a; -fx-font-weight: bold; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-background-radius: 6; -fx-padding: 7 14; -fx-cursor: hand;" />
             </HBox>
-            <Label text="Granular Intake (PREF-02)" textFill="#1e293b">
-                <font>
-                    <Font name="System Bold" size="18.0" />
-                </font>
-            </Label>
-            <Label text="Specify wake-up time, travel radius, and budget categories so the AI can craft conflict-free days."
-                   textFill="#475569" wrapText="true">
-                <font>
-                    <Font size="13.0" />
-                </font>
-            </Label>
+
         </VBox>
-    </HBox>
-
-    <!-- Information Banner -->
-    <VBox spacing="8.0"
-          style="-fx-background-color: #eff6ff; -fx-background-radius: 8; -fx-border-color: #bfdbfe; -fx-border-radius: 8;">
-        <padding>
-            <Insets top="16.0" right="16.0" bottom="16.0" left="16.0" />
-        </padding>
-        <Label text="💡 How It Works" textFill="#1e40af">
-            <font>
-                <Font name="System Bold" size="14.0" />
-            </font>
-        </Label>
-        <Label text="1. Set your individual travel constraints in Preferences.\n2. When all participants are ready, Gemini generates ranked options.\n3. Vote on activities using Borda count to produce your group's 'Perfect Days'."
-               textFill="#1e3a8a" wrapText="true">
-            <font>
-                <Font size="13.0" />
-            </font>
-        </Label>
-    </VBox>
-
-</VBox>
+    </content>
+</ScrollPane>

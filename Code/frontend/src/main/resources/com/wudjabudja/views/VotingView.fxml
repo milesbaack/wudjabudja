@@ -2,25 +2,42 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
-<VBox xmlns="http://javafx.com/javafx/21"
-      xmlns:fx="http://javafx.com/fxml/1"
-      spacing="16.0"
-      style="-fx-background-color: #f8fafc;">
-    <padding>
-        <Insets top="32.0" right="36.0" bottom="32.0" left="36.0" />
-    </padding>
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
 
-    <Label text="Consensus Voting (VOTE-04)" textFill="#0f172a">
-        <font>
-            <Font name="System Bold" size="24.0" />
-        </font>
-    </Label>
-    <Label text="Rank candidate activities using Borda count (1st=3pts, 2nd=2pts, 3rd=1pt)." textFill="#64748b">
-        <font>
-            <Font size="14.0" />
-        </font>
-    </Label>
-</VBox>
+    <content>
+        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
+            <padding>
+                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
+            </padding>
+
+            <VBox spacing="4.0">
+                <Label text="Group Activity Voting" textFill="#0f172a">
+                    <font><Font name="System Bold" size="24.0" /></font>
+                </Label>
+                <Label text="Rank daily activity options (1st, 2nd, 3rd) to democratically choose the group itinerary." textFill="#64748b">
+                    <font><Font size="14.0" /></font>
+                </Label>
+            </VBox>
+
+            <VBox spacing="16.0"
+                  style="-fx-background-color: #eff6ff; -fx-background-radius: 10; -fx-border-color: #bfdbfe; -fx-border-radius: 10; -fx-padding: 24;">
+                <Label text="⏳ Waiting on Group Intake" textFill="#1e40af">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Label>
+                <Label text="Activity generation will unlock once all 4 travelers submit their individual preferences. Currently, 3 of 4 travelers are ready."
+                       textFill="#1e3a8a" wrapText="true">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+        </VBox>
+    </content>
+</ScrollPane>

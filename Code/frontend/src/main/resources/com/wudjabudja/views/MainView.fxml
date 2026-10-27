@@ -69,7 +69,7 @@
                     maxWidth="Infinity"
                     onAction="#showPreferences" />
 
-            <Button fx:id="navVotingBtn" text="🗳️  Consensus Voting"
+            <Button fx:id="navVotingBtn" text="🗳️  Group Voting"
                     maxWidth="Infinity"
                     onAction="#showVoting" />
 
@@ -81,16 +81,16 @@
             <Region VBox.vgrow="ALWAYS" />
 
             <!-- User Status Card -->
-            <VBox spacing="4.0" style="-fx-background-color: #1e293b; -fx-background-radius: 8;">
+            <VBox spacing="3.0" style="-fx-background-color: #1e293b; -fx-background-radius: 8;">
                 <padding>
                     <Insets top="10.0" right="12.0" bottom="10.0" left="12.0" />
                 </padding>
-                <Label text="Traveler Profile" textFill="#e2e8f0">
+                <Label text="Miles Baack" textFill="#e2e8f0">
                     <font>
-                        <Font name="System Bold" size="12.0" />
+                        <Font name="System Bold" size="13.0" />
                     </font>
                 </Label>
-                <Label text="Session Active" textFill="#10b981">
+                <Label text="miles@example.com" textFill="#94a3b8">
                     <font>
                         <Font size="11.0" />
                     </font>
