@@ -1,0 +1,42 @@
+@startuml
+skinparam componentStyle rectangle
+
+package "Java Client" as Client {
+    component "«Layer»\nUser Interface" as UI #FDECD2
+    component "«Layer»\nClient-side Logic" as Logic #FDECD2
+    component "«Layer»\nCommunicator" as Comm #FDECD2
+
+    UI ..> Logic : "<<uses>>"
+    Logic ..> Comm : "<<uses>>"
+}
+
+package "Java Server" as Server {
+    component "Service Dispatcher" as Dispatcher #FFFACD
+    
+    component "«MicroService»\nAuthManager" as Auth #F2F2F2
+    component "«MicroService»\nTripManager" as Trip #F2F2F2
+    component "«MicroService»\nAIIntegrator" as AI #F2F2F2
+    
+    component "Data Service Provider" as Data #FFFACD
+
+    Dispatcher ..> Auth : "<<uses>>"
+    Dispatcher ..> Trip : "<<uses>>"
+    Dispatcher ..> AI : "<<uses>>"
+
+    Auth ..> Data : "<<uses>>"
+    Trip ..> Data : "<<uses>>"
+    AI ..> Data : "<<uses>>"
+}
+
+' Force the packages to sit side-by-side
+Client -[hidden]right-> Server
+
+' Clean horizontal interface connection
+interface " " as API
+Comm -right( API
+API -right- Dispatcher
+
+' Enforce horizontal alignment for the microservices
+Auth -[hidden]right- Trip
+Trip -[hidden]right- AI
+@enduml
