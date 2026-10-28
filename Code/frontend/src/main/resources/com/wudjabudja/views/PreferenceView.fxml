@@ -230,7 +230,8 @@
                     <VBox spacing="10.0">
                         <CheckBox fx:id="interestShopping" text="🛍️ Shopping &amp; Markets" textFill="#334155" />
                         <CheckBox fx:id="interestRelaxation" text="♨️ Onsens, Spas &amp; Relaxation" textFill="#334155" />
-                        <CheckBox fx:id="interestPopCulture" text="🎮 Tech, Pop Culture &amp; Arcades" selected="true" textFill="#334155" />
+                        <CheckBox fx:id="interestSports" text="🏟️ Sports &amp; Live Games" selected="true" textFill="#334155" />
+                        <CheckBox fx:id="interestTour" text="🗺️ Guided Tours" textFill="#334155" />
                     </VBox>
                 </HBox>
             </VBox>

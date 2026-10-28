@@ -32,7 +32,7 @@
     },
     "souvenirs": {
       "type": "array",
-      "items": { "type": "object", "properties": { "participant_id": { "type": "string" }, "idea": { "type": "string" }, "estimated_cost_usd": { "type": "number", "minimum": 0 } }, "required": ["participant_id", "idea", "estimated_cost_usd"] }
+      "items": { "type": "object", "properties": { "user_id": { "type": "integer" }, "idea": { "type": "string" }, "estimated_cost_usd": { "type": "number", "minimum": 0 } }, "required": ["user_id", "idea", "estimated_cost_usd"] }
     }
   },
   "required": ["customs", "language", "weather_note", "packing_list", "historical_facts", "season_advisory", "souvenirs"]
