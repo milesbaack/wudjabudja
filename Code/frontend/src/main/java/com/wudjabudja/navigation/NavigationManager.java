@@ -17,6 +17,7 @@ public class NavigationManager {
 
     private static NavigationManager instance;
     private MainController mainController;
+    private String initialViewPath;
 
     private NavigationManager() {}
 
@@ -31,6 +32,14 @@ public class NavigationManager {
         this.mainController = controller;
     }
 
+    public void setInitialViewPath(String path) {
+        this.initialViewPath = path;
+    }
+
+    public String getInitialViewPath() {
+        return initialViewPath;
+    }
+
     /**
      * Swaps the view inside the central StackPane of the main application shell.
      *
@@ -43,6 +52,28 @@ public class NavigationManager {
             return null;
         }
         return mainController.loadCenterView(fxmlPath);
+    }
+
+    /**
+     * Navigates to a specific primary section in the Main Shell,
+     * updating both the view and the active sidebar indicator.
+     */
+    public void navigateTo(String destination) {
+        if (mainController == null) {
+            System.err.println("NavigationManager: MainController is not registered!");
+            return;
+        }
+        if ("preferences".equalsIgnoreCase(destination) || "quiz".equalsIgnoreCase(destination)) {
+            mainController.showPreferences(null);
+        } else if ("dashboard".equalsIgnoreCase(destination)) {
+            mainController.showDashboard(null);
+        } else if ("voting".equalsIgnoreCase(destination)) {
+            mainController.showVoting(null);
+        } else if ("trips".equalsIgnoreCase(destination)) {
+            mainController.showTrips(null);
+        } else if ("briefing".equalsIgnoreCase(destination)) {
+            mainController.showBriefing(null);
+        }
     }
 
     /**

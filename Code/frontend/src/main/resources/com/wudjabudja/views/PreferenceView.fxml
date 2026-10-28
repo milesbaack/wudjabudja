@@ -26,14 +26,27 @@
                 <Insets top="28.0" right="36.0" bottom="40.0" left="36.0" />
             </padding>
 
-            <!-- Page Title -->
-            <VBox spacing="4.0">
-                <Label text="Personal Travel Preferences" textFill="#0f172a">
+            <!-- Page Title & Onboarding Badge -->
+            <VBox spacing="6.0">
+                <HBox alignment="CENTER_LEFT" spacing="10.0">
+                    <Label text="🎒 TRAVELER ONBOARDING QUIZ"
+                           style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 12;">
+                        <font>
+                            <Font size="11.0" />
+                        </font>
+                    </Label>
+                    <Label text="• Step 1: Calibrate Preferences" textFill="#64748b">
+                        <font>
+                            <Font size="12.0" />
+                        </font>
+                    </Label>
+                </HBox>
+                <Label text="Personal Travel Preferences Quiz" textFill="#0f172a">
                     <font>
                         <Font name="System Bold" size="24.0" />
                     </font>
                 </Label>
-                <Label text="Set your personal constraints so the AI engine tailors daily itineraries around your schedule, budget, and travel style."
+                <Label text="Answer these questions so Gemini builds itinerary options tailored to your wake-up time, exploration radius, budget breakdown, and activity interests."
                        textFill="#64748b" wrapText="true">
                     <font>
                         <Font size="14.0" />
@@ -44,7 +57,7 @@
             <!-- Card 1: Schedule & Mobility Constraints -->
             <VBox spacing="16.0"
                   style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-                <Label text="⏰ Daily Schedule &amp; Mobility" textFill="#0f172a">
+                <Label text="⏰ 1. Daily Schedule &amp; Mobility" textFill="#0f172a">
                     <font>
                         <Font name="System Bold" size="16.0" />
                     </font>
@@ -86,7 +99,7 @@
             <!-- Card 2: Travel Experience Level -->
             <VBox spacing="14.0"
                   style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-                <Label text="🚶 Travel Experience Level" textFill="#0f172a">
+                <Label text="🚶 2. Travel Experience Level" textFill="#0f172a">
                     <font>
                         <Font name="System Bold" size="16.0" />
                     </font>
@@ -113,7 +126,7 @@
             <VBox spacing="16.0"
                   style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
                 <HBox alignment="CENTER_LEFT">
-                    <Label text="💰 Categorical Budget Allocation" textFill="#0f172a">
+                    <Label text="💰 3. Categorical Budget Allocation" textFill="#0f172a">
                         <font>
                             <Font name="System Bold" size="16.0" />
                         </font>
@@ -211,7 +224,7 @@
             <!-- Card 4: Interests & Vibe Checkboxes -->
             <VBox spacing="14.0"
                   style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 22; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-                <Label text="🎯 Interests &amp; Activity Vibes" textFill="#0f172a">
+                <Label text="🎯 4. Interests &amp; Activity Vibes" textFill="#0f172a">
                     <font>
                         <Font name="System Bold" size="16.0" />
                     </font>
@@ -239,19 +252,27 @@
             <!-- Bottom Action Controls & Status Feedback -->
             <VBox spacing="12.0">
                 <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <Button fx:id="savePreferencesBtn" text="Save Travel Preferences"
+                    <Button fx:id="savePreferencesBtn" text="Save Preferences"
                             onAction="#handleSavePreferences"
-                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 24; -fx-background-radius: 6; -fx-cursor: hand;" />
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-                    <Button text="Reset to Defaults" onAction="#handleReset"
-                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-text-fill: #475569; -fx-padding: 9 18; -fx-cursor: hand;" />
+                    <Button fx:id="saveAndContinueBtn" text="Save &amp; Continue to Dashboard →"
+                            onAction="#handleSaveAndContinue"
+                            style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 6; -fx-cursor: hand;" />
 
-                    <Region HBox.hgrow="ALWAYS" />
+                    <Button fx:id="loadPreferencesBtn" text="Load from Server"
+                            onAction="#handleLoadPreferences"
+                            style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 6; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 9 16; -fx-cursor: hand;" />
 
-                    <Label fx:id="statusLabel" text="" wrapText="true">
-                        <font><Font size="13.0" /></font>
-                    </Label>
+                    <Button fx:id="resetDefaultsBtn" text="Reset Defaults"
+                            onAction="#handleReset"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-text-fill: #475569; -fx-padding: 9 16; -fx-cursor: hand;" />
                 </HBox>
+
+                <!-- Feedback status message (Success in Green, Failure in Red) -->
+                <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity">
+                    <font><Font size="13.0" /></font>
+                </Label>
             </VBox>
 
         </VBox>

@@ -12,21 +12,21 @@ public class DashboardController {
 
     @FXML
     public void goToPreferences(ActionEvent event) {
-        NavigationManager.getInstance().loadCenterView("/com/wudjabudja/views/PreferenceView.fxml");
+        NavigationManager.getInstance().navigateTo("preferences");
     }
 
     @FXML
     public void goToTrips(ActionEvent event) {
-        NavigationManager.getInstance().loadCenterView("/com/wudjabudja/views/TripsView.fxml");
+        NavigationManager.getInstance().navigateTo("trips");
     }
 
     @FXML
     public void goToVoting(ActionEvent event) {
-        NavigationManager.getInstance().loadCenterView("/com/wudjabudja/views/VotingView.fxml");
+        NavigationManager.getInstance().navigateTo("voting");
     }
 
     @FXML
     public void goToBriefing(ActionEvent event) {
-        NavigationManager.getInstance().loadCenterView("/com/wudjabudja/views/BriefingView.fxml");
+        NavigationManager.getInstance().navigateTo("briefing");
     }
 }

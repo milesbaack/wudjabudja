@@ -1,6 +1,7 @@
 package com.wudjabudja.controllers;
 
 import com.wudjabudja.models.PreferenceRequest;
+import com.wudjabudja.navigation.NavigationManager;
 import com.wudjabudja.services.PreferenceService;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
@@ -13,9 +14,10 @@ import java.net.URL;
 import java.util.*;
 
 /**
- * Controller for the Granular Preference Intake View (PREF-02).
- * Captures Tier 1 traveler constraints: Wake-up Time, Experience Level, Max Radius,
- * Categorical Budgets, and Interests.
+ * Controller for the Onboarding & Travel Preference Quiz View (MVP-08).
+ * Captures traveler constraints: Wake-up Time, Experience Level, Max Radius,
+ * Categorical Budgets, and Activity Interests.
+ * Communicates directly with Spring Boot REST endpoints for Save and Load.
  */
 public class PreferenceController implements Initializable {
 
@@ -102,6 +104,10 @@ public class PreferenceController implements Initializable {
 
     private final PreferenceService preferenceService = new PreferenceService();
 
+    // Default test IDs for MVP Sprint 1 scaffolding
+    private static final Long DEFAULT_TRIP_ID = 1L;
+    private static final Long DEFAULT_USER_ID = 1L;
+
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         // 1. Populate Wake-Up Times
@@ -143,7 +149,7 @@ public class PreferenceController implements Initializable {
             perBlockCapLabel.setText("$" + newVal.intValue() + " / activity");
         });
 
-        // Load existing preferences if previously saved
+        // Load existing preferences if cached in-memory
         PreferenceRequest existing = PreferenceService.getCurrentPreferences();
         if (existing != null) {
             populateFromRequest(existing);
@@ -162,27 +168,25 @@ public class PreferenceController implements Initializable {
         }
     }
 
-    @FXML
-    public void handleSavePreferences(ActionEvent event) {
-        // Collect Wake-up time
+    /**
+     * Builds a PreferenceRequest from current UI controls.
+     * Returns null if validation fails.
+     */
+    private PreferenceRequest buildRequestFromInputs() {
         String timeStr = wakeTimeCombo.getValue();
         if (timeStr == null || timeStr.trim().isEmpty()) {
             showStatus("Please select a preferred wake-up time.", true);
-            return;
+            return null;
         }
 
-        // Convert "08:30 AM" to "08:30" or 24-hr format
         String formattedWakeTime = convertTo24Hour(timeStr);
 
-        // Collect Experience Level
         String experience = "intermediate";
         if (noviceRadio.isSelected()) experience = "novice";
         else if (expertRadio.isSelected()) experience = "expert";
 
-        // Collect Radius
         int maxRadius = (int) radiusSlider.getValue();
 
-        // Collect Categorical Budgets
         Map<String, Double> categoricalBudgets = new LinkedHashMap<>();
         categoricalBudgets.put("transit", Math.round(transitSlider.getValue() * 100.0) / 100.0);
         categoricalBudgets.put("lodging", Math.round(lodgingSlider.getValue() * 100.0) / 100.0);
@@ -191,7 +195,6 @@ public class PreferenceController implements Initializable {
 
         BigDecimal perBlockCap = BigDecimal.valueOf((long) perBlockCapSlider.getValue());
 
-        // Collect Interests
         List<String> interests = new ArrayList<>();
         if (interestFood.isSelected()) interests.add("food");
         if (interestCulture.isSelected()) interests.add("culture");
@@ -204,12 +207,12 @@ public class PreferenceController implements Initializable {
 
         if (interests.isEmpty()) {
             showStatus("Please select at least one interest.", true);
-            return;
+            return null;
         }
 
-        PreferenceRequest request = new PreferenceRequest(
-                1L, // Trip ID (Tokyo Explorer)
-                1L, // User ID (Miles)
+        return new PreferenceRequest(
+                DEFAULT_TRIP_ID,
+                DEFAULT_USER_ID,
                 formattedWakeTime,
                 experience,
                 maxRadius,
@@ -217,9 +220,59 @@ public class PreferenceController implements Initializable {
                 perBlockCap,
                 interests
         );
+    }
+
+    /**
+     * Handles the Save button: sends POST /api/trips/{id}/preferences to Spring Boot.
+     * Displays a clear failure status if saving fails.
+     */
+    @FXML
+    public void handleSavePreferences(ActionEvent event) {
+        PreferenceRequest request = buildRequestFromInputs();
+        if (request == null) return;
 
         PreferenceService.SaveResult result = preferenceService.savePreferences(request);
-        showStatus("✓ " + result.getMessage(), false);
+        if (result.isSuccess()) {
+            showStatus("✓ " + result.getMessage(), false);
+        } else {
+            showStatus("✗ " + result.getMessage(), true);
+        }
+    }
+
+    /**
+     * Handles the Load button: sends GET /api/trips/{id}/preferences to Spring Boot.
+     * Populates all inputs with the server's stored preferences.
+     */
+    @FXML
+    public void handleLoadPreferences(ActionEvent event) {
+        showStatus("Loading preferences from server...", false);
+        PreferenceService.LoadResult result = preferenceService.loadPreferences(DEFAULT_TRIP_ID, DEFAULT_USER_ID);
+
+        if (result.isSuccess() && result.getPreferences() != null) {
+            populateFromRequest(result.getPreferences());
+            showStatus("✓ " + result.getMessage(), false);
+        } else {
+            showStatus("✗ " + result.getMessage(), true);
+        }
+    }
+
+    /**
+     * Handles the "Save & Continue to Dashboard" button in the onboarding quiz flow.
+     * Saves preferences, and upon success navigates immediately to the Dashboard.
+     */
+    @FXML
+    public void handleSaveAndContinue(ActionEvent event) {
+        PreferenceRequest request = buildRequestFromInputs();
+        if (request == null) return;
+
+        PreferenceService.SaveResult result = preferenceService.savePreferences(request);
+        if (result.isSuccess()) {
+            showStatus("✓ Preferences saved! Taking you to the dashboard...", false);
+            NavigationManager.getInstance().navigateTo("dashboard");
+        } else {
+            // Stay on the quiz and highlight the failure
+            showStatus("✗ " + result.getMessage(), true);
+        }
     }
 
     @FXML
@@ -311,6 +364,8 @@ public class PreferenceController implements Initializable {
             interestSports.setSelected(ints.contains("sports"));
             interestTour.setSelected(ints.contains("tour"));
         }
+
+        updateTotalBudget();
     }
 
     private String convertTo24Hour(String displayTime) {
@@ -322,9 +377,9 @@ public class PreferenceController implements Initializable {
             int min = Integer.parseInt(parts[1]);
             if (isPm && hour < 12) hour += 12;
             if (!isPm && hour == 12) hour = 0;
-            return String.format("%02d:%02d:00", hour, min);
+            return String.format("%02d:%02d", hour, min);
         } catch (Exception e) {
-            return "08:30:00";
+            return "08:30";
         }
     }
 

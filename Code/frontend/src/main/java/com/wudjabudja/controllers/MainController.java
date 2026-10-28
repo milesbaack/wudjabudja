@@ -64,8 +64,19 @@ public class MainController implements Initializable {
                 navBriefingBtn
         );
 
-        // Load default starting view
-        showDashboard(null);
+        // Check if an initial starting view was requested (e.g. Onboarding Quiz after registration)
+        String initialView = NavigationManager.getInstance().getInitialViewPath();
+        if (initialView != null) {
+            NavigationManager.getInstance().setInitialViewPath(null); // Clear after consumption
+            if ("/com/wudjabudja/views/PreferenceView.fxml".equals(initialView)) {
+                showPreferences(null);
+            } else {
+                loadCenterView(initialView);
+            }
+        } else {
+            // Load default starting view
+            showDashboard(null);
+        }
     }
 
     @FXML

@@ -1,5 +1,6 @@
 package com.wudjabudja.controllers;
 
+import com.wudjabudja.navigation.NavigationManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -55,18 +56,18 @@ public class RegisterController {
             return;
         }
 
-        // 4. Passwords match check (Crucial requirement for AUTH-04!)
+        // 4. Passwords match check
         if (!password.equals(confirmPassword)) {
             showError("Passwords do not match.");
             return;
         }
 
-        // Passed all client-side validation!
+        // Passed client-side validation!
         clearError();
         System.out.println("Registration valid for: " + fullName + " (" + email + ")");
-        
-        // In Sprint 2 (AUTH-01), this triggers POST /api/auth/register.
-        // For local UI testing, transition directly into the Main App Shell (NAV-01):
+
+        // Onboarding flow: Direct new user immediately into the Preference Intake Quiz (MVP-08)
+        NavigationManager.getInstance().setInitialViewPath("/com/wudjabudja/views/PreferenceView.fxml");
         switchScene(event, "/com/wudjabudja/views/MainView.fxml");
     }
 
