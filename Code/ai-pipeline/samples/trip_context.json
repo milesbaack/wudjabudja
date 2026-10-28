@@ -1,6 +1,6 @@
 {
   "trip_id": 102,
-  "destination": { "city": "San Diego", "sub_city": "North Park" },
+  "destination": "San Diego",
   "start_date": "2027-03-12",
   "end_date": "2027-03-14",
   "num_days": 3,
@@ -15,7 +15,7 @@
       "max_radius_miles": 15,
       "categorical_budgets": { "lodging": 300, "transit": 60, "food": 150, "activities": 120 },
       "per_block_cap_usd": 30,
-      "interests": ["craft beer", "baseball", "hiking"]
+      "interests": ["sports", "outdoors", "nightlife"]
     },
     {
       "user_id": 2,
@@ -25,7 +25,7 @@
       "max_radius_miles": 8,
       "categorical_budgets": { "lodging": 250, "transit": 40, "food": 200, "activities": 80 },
       "per_block_cap_usd": 31,
-      "interests": ["food tours", "beaches", "nightlife"]
+      "interests": ["food", "tour", "relaxation", "nightlife"]
     }
   ]
 }

@@ -92,7 +92,10 @@ public class PreferenceController implements Initializable {
     private CheckBox interestRelaxation;
 
     @FXML
-    private CheckBox interestPopCulture;
+    private CheckBox interestSports;
+
+    @FXML
+    private CheckBox interestTour;
 
     @FXML
     private Label statusLabel;
@@ -196,7 +199,8 @@ public class PreferenceController implements Initializable {
         if (interestNightlife.isSelected()) interests.add("nightlife");
         if (interestShopping.isSelected()) interests.add("shopping");
         if (interestRelaxation.isSelected()) interests.add("relaxation");
-        if (interestPopCulture.isSelected()) interests.add("pop_culture");
+        if (interestSports.isSelected()) interests.add("sports");
+        if (interestTour.isSelected()) interests.add("tour");
 
         if (interests.isEmpty()) {
             showStatus("Please select at least one interest.", true);
@@ -251,7 +255,8 @@ public class PreferenceController implements Initializable {
         interestNightlife.setSelected(true);
         interestShopping.setSelected(false);
         interestRelaxation.setSelected(false);
-        interestPopCulture.setSelected(true);
+        interestSports.setSelected(true);
+        interestTour.setSelected(false);
 
         updateTotalBudget();
         clearStatus();
@@ -303,7 +308,8 @@ public class PreferenceController implements Initializable {
             interestNightlife.setSelected(ints.contains("nightlife"));
             interestShopping.setSelected(ints.contains("shopping"));
             interestRelaxation.setSelected(ints.contains("relaxation"));
-            interestPopCulture.setSelected(ints.contains("pop_culture"));
+            interestSports.setSelected(ints.contains("sports"));
+            interestTour.setSelected(ints.contains("tour"));
         }
     }
 
