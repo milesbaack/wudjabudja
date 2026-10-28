@@ -44,7 +44,7 @@ To re-run the checks on a saved answer without spending another API call:
 java GeminiTest.java itinerary --from-file output/itinerary_raw.json
 ```
 
-Optional: `GEMINI_MODEL=gemini-3.5-flash-lite` to try the cheaper model. Default is `gemini-3.8-flash`.
+Optional: `GEMINI_MODEL=gemini-3.5-flash-lite` to try the cheaper model. Default is `gemini-3.6-flash` (3.7 and 3.8 kept hitting free-tier quota limits).
 
 ## API key rules
 

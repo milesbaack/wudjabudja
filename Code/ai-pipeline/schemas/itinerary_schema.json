@@ -12,13 +12,13 @@
             "items": {
               "type": "object",
               "properties": {
-                "block": { "type": "string", "enum": ["morning", "afternoon", "evening"] },
+                "time_block": { "type": "string", "enum": ["morning", "afternoon", "evening"] },
                 "subgroups": {
                   "type": "array", "minItems": 1, "maxItems": 2,
                   "items": {
                     "type": "object",
                     "properties": {
-                      "participant_ids": { "type": "array", "items": { "type": "string" } },
+                      "subgroup_participants": { "type": "array", "items": { "type": "integer" } },
                       "split_reason": { "type": ["string", "null"] },
                       "options": {
                         "type": "array", "minItems": 3, "maxItems": 3,
@@ -38,11 +38,11 @@
                         }
                       }
                     },
-                    "required": ["participant_ids", "split_reason", "options"]
+                    "required": ["subgroup_participants", "split_reason", "options"]
                   }
                 }
               },
-              "required": ["block", "subgroups"]
+              "required": ["time_block", "subgroups"]
             }
           }
         },

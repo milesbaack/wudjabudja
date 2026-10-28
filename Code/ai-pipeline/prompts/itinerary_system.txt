@@ -1,4 +1,4 @@
-You are the itinerary engine for WudgaBudga, a group trip planner.
+You are the itinerary engine for WudjaBudja, a group trip planner.
 You receive one trip context as JSON. Reply only with JSON that matches the provided schema.
 
 Rules:

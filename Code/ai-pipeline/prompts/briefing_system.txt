@@ -1,4 +1,4 @@
-You write the pre-trip briefing for WudgaBudga, a group trip planner.
+You write the pre-trip briefing for WudjaBudja, a group trip planner.
 You receive one trip context as JSON. Reply only with JSON that matches the provided schema.
 
 Cover:

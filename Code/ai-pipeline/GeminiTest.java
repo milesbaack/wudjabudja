@@ -25,7 +25,7 @@ import java.util.Set;
  *   java GeminiTest.java itinerary --from-file output/itinerary_raw.json
  *
  * Needs the GEMINI_API_KEY environment variable. GEMINI_MODEL is optional
- * (defaults to gemini-3.8-flash).
+ * (defaults to gemini-3.6-flash).
  *
  * This is a throwaway test harness. The real client goes in the Spring Boot
  * backend in Sprint 5 (AI-02, AI-03) and should use Jackson instead of the
@@ -34,7 +34,7 @@ import java.util.Set;
 public class GeminiTest {
 
     static final String ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/interactions";
-    static final String DEFAULT_MODEL = "gemini-3.8-flash";
+    static final String DEFAULT_MODEL = "gemini-3.6-flash";
 
     public static void main(String[] args) throws Exception {
         if (args.length < 1 || !(args[0].equals("itinerary") || args[0].equals("briefing"))) {
@@ -146,10 +146,10 @@ public class GeminiTest {
 
     static List<String> checkItinerary(Map<String, Object> trip, Map<String, Object> out) {
         List<String> problems = new ArrayList<>();
-        Map<String, Map<String, Object>> people = new LinkedHashMap<>();
+        Map<Long, Map<String, Object>> people = new LinkedHashMap<>();
         for (Object p : Json.arr(trip.get("participants"))) {
             Map<String, Object> m = Json.obj(p);
-            people.put((String) m.get("participant_id"), m);
+            people.put(Json.num(m.get("user_id")).longValue(), m);
         }
         LocalDate start = LocalDate.parse((String) trip.get("start_date"));
         int numDays = Json.num(trip.get("num_days")).intValue();
@@ -166,18 +166,18 @@ public class GeminiTest {
             int splitBlocks = 0;
             for (Object b : Json.arr(day.get("blocks"))) {
                 Map<String, Object> block = Json.obj(b);
-                String where = date + " " + block.get("block");
+                String where = date + " " + block.get("time_block");
                 List<Object> subgroups = Json.arr(block.get("subgroups"));
                 if (subgroups.size() > 1) splitBlocks++;
 
-                Set<String> seen = new HashSet<>();
+                Set<Long> seen = new HashSet<>();
                 for (Object sg : subgroups) {
                     Map<String, Object> sub = Json.obj(sg);
-                    List<Object> ids = Json.arr(sub.get("participant_ids"));
+                    List<Object> ids = Json.arr(sub.get("subgroup_participants"));
                     double cap = Double.MAX_VALUE;
                     int latestWake = 0;
                     for (Object idObj : ids) {
-                        String id = (String) idObj;
+                        long id = Json.num(idObj).longValue();
                         if (!seen.add(id)) problems.add(where + ": " + id + " is in more than one subgroup");
                         Map<String, Object> person = people.get(id);
                         if (person == null) { problems.add(where + ": unknown participant " + id); continue; }
@@ -204,10 +204,13 @@ public class GeminiTest {
 
     static List<String> checkBriefing(Map<String, Object> trip, Map<String, Object> out) {
         List<String> problems = new ArrayList<>();
-        Set<String> expected = new HashSet<>();
-        for (Object p : Json.arr(trip.get("participants"))) expected.add((String) Json.obj(p).get("participant_id"));
-        Set<String> got = new HashSet<>();
-        for (Object s : Json.arr(out.get("souvenirs"))) got.add((String) Json.obj(s).get("participant_id"));
+        Set<Long> expected = new HashSet<>();
+        for (Object p : Json.arr(trip.get("participants"))) expected.add(Json.num(Json.obj(p).get("user_id")).longValue());
+        Set<Long> got = new HashSet<>();
+        for (Object s : Json.arr(out.get("souvenirs"))) {
+            Number id = Json.num(Json.obj(s).get("user_id"));
+            got.add(id == null ? null : id.longValue());
+        }
         if (!got.equals(expected)) problems.add("souvenirs cover " + got + ", expected " + expected);
         return problems;
     }
