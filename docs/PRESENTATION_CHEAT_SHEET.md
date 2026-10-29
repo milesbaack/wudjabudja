@@ -14,12 +14,17 @@ Use this cheat sheet for a quick, 2–3 minute presentation to Ethan, Lukas, and
 
 ## 🛠️ 2. What I Implemented (The Details)
 
-### A. The Onboarding User Experience Flow
-* **The Problem:** Previously, registering an account dropped the user onto an empty dashboard with no profile constraints.
+### A. The Step-by-Step Questionnaire Wizard Flow
+* **The Problem:** Previously, preferences were laid out in a single static settings form with all inputs crammed on one scrollable screen, which did not feel like an onboarding questionnaire.
 * **The Solution:**
-  * When a user creates an account in `RegisterView`, they are now automatically transitioned into the **Onboarding Quiz** (`PreferenceView`).
-  * The quiz is branded with an **`🎒 TRAVELER ONBOARDING QUIZ • Step 1: Calibrate Preferences`** banner.
-  * Added a prominent **`Save & Continue to Dashboard →`** button that validates all answers, sends them to the backend, and navigates straight to the Dashboard upon success.
+  * Rebuilt the view into an interactive **6-Step Questionnaire Wizard** where users focus on one question at a time:
+    1. **Step 1: Daily Schedule & Wake-Up Time** (Preset cards for Early Bird, Standard, Sleep In + custom time dropdown).
+    2. **Step 2: Base Exploration Radius** (Prominent live miles display + visual mobility tier descriptor).
+    3. **Step 3: Travel Comfort Level** (Interactive experience cards for Novice, Intermediate, and Expert).
+    4. **Step 4: Categorical Budget Allocation** (Live calculating budget total card + price cap slider).
+    5. **Step 5: Activity Vibes & Interests** (Clean 2-column grid of 8 interest categories with validation requiring at least 1 selection).
+    6. **Step 6: Review & Finalize Profile** (Complete summary card showing all chosen settings with Save & Continue to Dashboard).
+  * Smooth step navigation with a live **Progress Bar (`Step X of 6`)**, **`← Back`**, and **`Next Question →`** controls.
 
 ### B. Full Quiz Inputs & Interactive Controls (MVP-08)
 * **Schedule & Mobility:** Wake-up time dropdown (stored in 24-hr `HH:mm` format like `"08:30"`) and an exploration radius slider (1–50 miles).
