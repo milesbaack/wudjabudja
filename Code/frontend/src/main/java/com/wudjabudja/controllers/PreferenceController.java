@@ -8,103 +8,95 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.VBox;
 
 import java.math.BigDecimal;
 import java.net.URL;
 import java.util.*;
 
 /**
- * Controller for the Onboarding & Travel Preference Quiz View (MVP-08).
- * Captures traveler constraints: Wake-up Time, Experience Level, Max Radius,
- * Categorical Budgets, and Activity Interests.
- * Communicates directly with Spring Boot REST endpoints for Save and Load.
+ * Controller for the Step-by-Step Onboarding Questionnaire (MVP-08).
+ * Guides the user through a guided 6-step wizard:
+ * 1. Morning Routine & Wake-Up Time
+ * 2. Base Exploration Radius
+ * 3. Travel Experience & Navigation Comfort
+ * 4. Categorical Budget Allocation
+ * 5. Interests & Activity Vibes
+ * 6. Review & Submission
  */
 public class PreferenceController implements Initializable {
 
-    @FXML
-    private ComboBox<String> wakeTimeCombo;
+    // Step Tracking & Header Controls
+    @FXML private Label stepCounterLabel;
+    @FXML private ProgressBar quizProgressBar;
+    @FXML private Label stepHeadingLabel;
 
-    @FXML
-    private ToggleGroup experienceGroup;
+    // Step Panes
+    @FXML private VBox step1Pane;
+    @FXML private VBox step2Pane;
+    @FXML private VBox step3Pane;
+    @FXML private VBox step4Pane;
+    @FXML private VBox step5Pane;
+    @FXML private VBox step6Pane;
 
-    @FXML
-    private RadioButton noviceRadio;
+    // Bottom Navigation Buttons
+    @FXML private Button prevBtn;
+    @FXML private Button nextBtn;
 
-    @FXML
-    private RadioButton intermediateRadio;
+    // Step 1: Wake Time Controls
+    @FXML private ComboBox<String> wakeTimeCombo;
 
-    @FXML
-    private RadioButton expertRadio;
+    // Step 2: Radius Controls
+    @FXML private Slider radiusSlider;
+    @FXML private Label radiusValueLabel;
+    @FXML private Label radiusHintLabel;
 
-    @FXML
-    private Slider radiusSlider;
+    // Step 3: Experience Controls
+    @FXML private ToggleGroup experienceGroup;
+    @FXML private RadioButton noviceRadio;
+    @FXML private RadioButton intermediateRadio;
+    @FXML private RadioButton expertRadio;
 
-    @FXML
-    private Label radiusValueLabel;
+    // Step 4: Budget Sliders & Labels
+    @FXML private Slider transitSlider;
+    @FXML private Label transitValueLabel;
+    @FXML private Slider lodgingSlider;
+    @FXML private Label lodgingValueLabel;
+    @FXML private Slider foodSlider;
+    @FXML private Label foodValueLabel;
+    @FXML private Slider activitiesSlider;
+    @FXML private Label activitiesValueLabel;
+    @FXML private Slider perBlockCapSlider;
+    @FXML private Label perBlockCapLabel;
+    @FXML private Label totalBudgetLabel;
+    @FXML private Label totalBreakdownLabel;
 
-    @FXML
-    private Slider transitSlider;
+    // Step 5: Interests Checkboxes
+    @FXML private CheckBox interestFood;
+    @FXML private CheckBox interestCulture;
+    @FXML private CheckBox interestOutdoors;
+    @FXML private CheckBox interestNightlife;
+    @FXML private CheckBox interestShopping;
+    @FXML private CheckBox interestRelaxation;
+    @FXML private CheckBox interestSports;
+    @FXML private CheckBox interestTour;
 
-    @FXML
-    private Label transitValueLabel;
+    // Step 6: Review Summary Labels
+    @FXML private Label summaryWakeTime;
+    @FXML private Label summaryRadius;
+    @FXML private Label summaryExperience;
+    @FXML private Label summaryTotalBudget;
+    @FXML private Label summaryPerBlockCap;
+    @FXML private Label summaryInterests;
 
-    @FXML
-    private Slider lodgingSlider;
+    // Status Label
+    @FXML private Label statusLabel;
 
-    @FXML
-    private Label lodgingValueLabel;
-
-    @FXML
-    private Slider foodSlider;
-
-    @FXML
-    private Label foodValueLabel;
-
-    @FXML
-    private Slider activitiesSlider;
-
-    @FXML
-    private Label activitiesValueLabel;
-
-    @FXML
-    private Slider perBlockCapSlider;
-
-    @FXML
-    private Label perBlockCapLabel;
-
-    @FXML
-    private Label totalBudgetLabel;
-
-    @FXML
-    private CheckBox interestFood;
-
-    @FXML
-    private CheckBox interestCulture;
-
-    @FXML
-    private CheckBox interestOutdoors;
-
-    @FXML
-    private CheckBox interestNightlife;
-
-    @FXML
-    private CheckBox interestShopping;
-
-    @FXML
-    private CheckBox interestRelaxation;
-
-    @FXML
-    private CheckBox interestSports;
-
-    @FXML
-    private CheckBox interestTour;
-
-    @FXML
-    private Label statusLabel;
+    private int currentStep = 1;
+    private static final int TOTAL_STEPS = 6;
 
     private final PreferenceService preferenceService = new PreferenceService();
 
-    // Default test IDs for MVP Sprint 1 scaffolding
     private static final Long DEFAULT_TRIP_ID = 1L;
     private static final Long DEFAULT_USER_ID = 1L;
 
@@ -119,12 +111,14 @@ public class PreferenceController implements Initializable {
         wakeTimeCombo.setItems(FXCollections.observableArrayList(times));
         wakeTimeCombo.setValue("08:30 AM");
 
-        // 2. Dynamic Slider Listeners for Live Updates
+        // 2. Setup Radius Slider Listeners
         radiusSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             int miles = newVal.intValue();
             radiusValueLabel.setText(miles + " miles");
+            updateRadiusHint(miles);
         });
 
+        // 3. Setup Budget Sliders Listeners
         transitSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             transitValueLabel.setText("$" + newVal.intValue());
             updateTotalBudget();
@@ -149,7 +143,7 @@ public class PreferenceController implements Initializable {
             perBlockCapLabel.setText("$" + newVal.intValue() + " / activity");
         });
 
-        // Load existing preferences if cached in-memory
+        // 4. Load from in-memory cache if available, else set defaults
         PreferenceRequest existing = PreferenceService.getCurrentPreferences();
         if (existing != null) {
             populateFromRequest(existing);
@@ -157,21 +151,182 @@ public class PreferenceController implements Initializable {
             resetDefaults();
         }
 
-        updateTotalBudget();
+        // 5. Initialize view to Step 1
+        showStep(1);
     }
 
-    private void updateTotalBudget() {
-        int total = (int) (transitSlider.getValue() + lodgingSlider.getValue() +
-                foodSlider.getValue() + activitiesSlider.getValue());
-        if (totalBudgetLabel != null) {
-            totalBudgetLabel.setText("$" + total + " total estimated per person");
+    private void showStep(int step) {
+        this.currentStep = step;
+
+        // Toggle Visibility & Managed state
+        setPaneActive(step1Pane, step == 1);
+        setPaneActive(step2Pane, step == 2);
+        setPaneActive(step3Pane, step == 3);
+        setPaneActive(step4Pane, step == 4);
+        setPaneActive(step5Pane, step == 5);
+        setPaneActive(step6Pane, step == 6);
+
+        // Update Progress & Headings
+        double progress = (double) step / TOTAL_STEPS;
+        quizProgressBar.setProgress(progress);
+        stepCounterLabel.setText("Step " + step + " of " + TOTAL_STEPS);
+
+        switch (step) {
+            case 1:
+                stepHeadingLabel.setText("Step 1: Daily Schedule & Wake-Up Time");
+                break;
+            case 2:
+                stepHeadingLabel.setText("Step 2: Base Exploration Radius");
+                break;
+            case 3:
+                stepHeadingLabel.setText("Step 3: Travel Experience & Navigation Comfort");
+                break;
+            case 4:
+                stepHeadingLabel.setText("Step 4: Categorical Budget Allocation");
+                break;
+            case 5:
+                stepHeadingLabel.setText("Step 5: Interests & Activity Vibes");
+                break;
+            case 6:
+                stepHeadingLabel.setText("Step 6: Review & Finalize Profile");
+                updateSummary();
+                break;
+        }
+
+        // Navigation Controls State
+        prevBtn.setVisible(step > 1);
+
+        if (step == 5) {
+            nextBtn.setText("Review Profile →");
+            nextBtn.setVisible(true);
+        } else if (step == 6) {
+            nextBtn.setVisible(false); // Actions handled by Save & Continue on Step 6
+        } else {
+            nextBtn.setText("Next Question →");
+            nextBtn.setVisible(true);
+        }
+
+        clearStatus();
+    }
+
+    private void setPaneActive(VBox pane, boolean active) {
+        if (pane != null) {
+            pane.setVisible(active);
+            pane.setManaged(active);
         }
     }
 
-    /**
-     * Builds a PreferenceRequest from current UI controls.
-     * Returns null if validation fails.
-     */
+    @FXML
+    public void handleNextStep(ActionEvent event) {
+        if (currentStep == 5) {
+            // Validate at least one interest is chosen before advancing to Review
+            List<String> interests = getSelectedInterests();
+            if (interests.isEmpty()) {
+                showStatus("Please select at least one interest before reviewing.", true);
+                return;
+            }
+        }
+
+        if (currentStep < TOTAL_STEPS) {
+            showStep(currentStep + 1);
+        }
+    }
+
+    @FXML
+    public void handlePrevStep(ActionEvent event) {
+        if (currentStep > 1) {
+            showStep(currentStep - 1);
+        }
+    }
+
+    // Preset Handlers for Step 1
+    @FXML
+    public void setPresetEarly(ActionEvent event) {
+        wakeTimeCombo.setValue("07:00 AM");
+    }
+
+    @FXML
+    public void setPresetStandard(ActionEvent event) {
+        wakeTimeCombo.setValue("08:30 AM");
+    }
+
+    @FXML
+    public void setPresetLate(ActionEvent event) {
+        wakeTimeCombo.setValue("10:00 AM");
+    }
+
+    private void updateRadiusHint(int miles) {
+        if (radiusHintLabel == null) return;
+        if (miles <= 8) {
+            radiusHintLabel.setText("🚶 Neighborhood Explorer (Walkable & quick hops)");
+        } else if (miles <= 22) {
+            radiusHintLabel.setText("🚇 City-Wide & Metro Transit Explorer");
+        } else {
+            radiusHintLabel.setText("🚆 Regional Excursions & Day Trip Distance");
+        }
+    }
+
+    private void updateTotalBudget() {
+        int transit = (int) transitSlider.getValue();
+        int lodging = (int) lodgingSlider.getValue();
+        int food = (int) foodSlider.getValue();
+        int activities = (int) activitiesSlider.getValue();
+        int total = transit + lodging + food + activities;
+
+        if (totalBudgetLabel != null) {
+            totalBudgetLabel.setText("$" + total + " Total");
+        }
+        if (totalBreakdownLabel != null) {
+            totalBreakdownLabel.setText("$" + transit + " transit + $" + lodging + " hotel + $" + food + " food + $" + activities + " activities");
+        }
+    }
+
+    private List<String> getSelectedInterests() {
+        List<String> interests = new ArrayList<>();
+        if (interestFood.isSelected()) interests.add("food");
+        if (interestCulture.isSelected()) interests.add("culture");
+        if (interestOutdoors.isSelected()) interests.add("outdoors");
+        if (interestNightlife.isSelected()) interests.add("nightlife");
+        if (interestShopping.isSelected()) interests.add("shopping");
+        if (interestRelaxation.isSelected()) interests.add("relaxation");
+        if (interestSports.isSelected()) interests.add("sports");
+        if (interestTour.isSelected()) interests.add("tour");
+        return interests;
+    }
+
+    private void updateSummary() {
+        if (summaryWakeTime != null) {
+            summaryWakeTime.setText(wakeTimeCombo.getValue() != null ? wakeTimeCombo.getValue() : "08:30 AM");
+        }
+        if (summaryRadius != null) {
+            summaryRadius.setText(((int) radiusSlider.getValue()) + " miles from base hotel");
+        }
+        if (summaryExperience != null) {
+            if (noviceRadio.isSelected()) summaryExperience.setText("Novice Traveler");
+            else if (expertRadio.isSelected()) summaryExperience.setText("Expert Adventurer");
+            else summaryExperience.setText("Intermediate Explorer");
+        }
+        if (summaryTotalBudget != null) {
+            int total = (int) (transitSlider.getValue() + lodgingSlider.getValue() + foodSlider.getValue() + activitiesSlider.getValue());
+            summaryTotalBudget.setText("$" + total + " estimated per person");
+        }
+        if (summaryPerBlockCap != null) {
+            summaryPerBlockCap.setText("$" + ((int) perBlockCapSlider.getValue()) + " / activity");
+        }
+        if (summaryInterests != null) {
+            List<String> list = getSelectedInterests();
+            if (list.isEmpty()) {
+                summaryInterests.setText("None selected");
+            } else {
+                List<String> formatted = new ArrayList<>();
+                for (String s : list) {
+                    formatted.add(s.substring(0, 1).toUpperCase() + s.substring(1));
+                }
+                summaryInterests.setText(String.join(", ", formatted));
+            }
+        }
+    }
+
     private PreferenceRequest buildRequestFromInputs() {
         String timeStr = wakeTimeCombo.getValue();
         if (timeStr == null || timeStr.trim().isEmpty()) {
@@ -195,16 +350,7 @@ public class PreferenceController implements Initializable {
 
         BigDecimal perBlockCap = BigDecimal.valueOf((long) perBlockCapSlider.getValue());
 
-        List<String> interests = new ArrayList<>();
-        if (interestFood.isSelected()) interests.add("food");
-        if (interestCulture.isSelected()) interests.add("culture");
-        if (interestOutdoors.isSelected()) interests.add("outdoors");
-        if (interestNightlife.isSelected()) interests.add("nightlife");
-        if (interestShopping.isSelected()) interests.add("shopping");
-        if (interestRelaxation.isSelected()) interests.add("relaxation");
-        if (interestSports.isSelected()) interests.add("sports");
-        if (interestTour.isSelected()) interests.add("tour");
-
+        List<String> interests = getSelectedInterests();
         if (interests.isEmpty()) {
             showStatus("Please select at least one interest.", true);
             return null;
@@ -222,10 +368,6 @@ public class PreferenceController implements Initializable {
         );
     }
 
-    /**
-     * Handles the Save button: sends POST /api/trips/{id}/preferences to Spring Boot.
-     * Displays a clear failure status if saving fails.
-     */
     @FXML
     public void handleSavePreferences(ActionEvent event) {
         PreferenceRequest request = buildRequestFromInputs();
@@ -239,10 +381,6 @@ public class PreferenceController implements Initializable {
         }
     }
 
-    /**
-     * Handles the Load button: sends GET /api/trips/{id}/preferences to Spring Boot.
-     * Populates all inputs with the server's stored preferences.
-     */
     @FXML
     public void handleLoadPreferences(ActionEvent event) {
         showStatus("Loading preferences from server...", false);
@@ -251,15 +389,12 @@ public class PreferenceController implements Initializable {
         if (result.isSuccess() && result.getPreferences() != null) {
             populateFromRequest(result.getPreferences());
             showStatus("✓ " + result.getMessage(), false);
+            showStep(6); // Jump straight to Review to see loaded values
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }
     }
 
-    /**
-     * Handles the "Save & Continue to Dashboard" button in the onboarding quiz flow.
-     * Saves preferences, and upon success navigates immediately to the Dashboard.
-     */
     @FXML
     public void handleSaveAndContinue(ActionEvent event) {
         PreferenceRequest request = buildRequestFromInputs();
@@ -270,7 +405,6 @@ public class PreferenceController implements Initializable {
             showStatus("✓ Preferences saved! Taking you to the dashboard...", false);
             NavigationManager.getInstance().navigateTo("dashboard");
         } else {
-            // Stay on the quiz and highlight the failure
             showStatus("✗ " + result.getMessage(), true);
         }
     }
@@ -279,6 +413,7 @@ public class PreferenceController implements Initializable {
     public void handleReset(ActionEvent event) {
         resetDefaults();
         showStatus("Preferences reset to defaults.", false);
+        showStep(1);
     }
 
     private void resetDefaults() {
@@ -286,6 +421,7 @@ public class PreferenceController implements Initializable {
         intermediateRadio.setSelected(true);
         radiusSlider.setValue(15);
         radiusValueLabel.setText("15 miles");
+        updateRadiusHint(15);
 
         transitSlider.setValue(60);
         transitValueLabel.setText("$60");
@@ -326,6 +462,7 @@ public class PreferenceController implements Initializable {
         if (req.getMaxRadiusMiles() != null) {
             radiusSlider.setValue(req.getMaxRadiusMiles());
             radiusValueLabel.setText(req.getMaxRadiusMiles() + " miles");
+            updateRadiusHint(req.getMaxRadiusMiles());
         }
 
         if (req.getCategoricalBudgets() != null) {
@@ -366,6 +503,7 @@ public class PreferenceController implements Initializable {
         }
 
         updateTotalBudget();
+        updateSummary();
     }
 
     private String convertTo24Hour(String displayTime) {
