@@ -1,0 +1,54 @@
+{
+  "type": "object",
+  "properties": {
+    "days": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "date": { "type": "string", "format": "date" },
+          "blocks": {
+            "type": "array", "minItems": 3, "maxItems": 3,
+            "items": {
+              "type": "object",
+              "properties": {
+                "time_block": { "type": "string", "enum": ["morning", "afternoon", "evening"] },
+                "subgroups": {
+                  "type": "array", "minItems": 1, "maxItems": 2,
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "subgroup_participants": { "type": "array", "items": { "type": "integer" } },
+                      "split_reason": { "type": ["string", "null"] },
+                      "options": {
+                        "type": "array", "minItems": 3, "maxItems": 3,
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "title": { "type": "string" },
+                            "description": { "type": "string" },
+                            "category": { "type": "string", "enum": ["food", "outdoors", "culture", "nightlife", "sports", "shopping", "relaxation", "tour"] },
+                            "neighborhood": { "type": "string" },
+                            "start_time": { "type": "string", "description": "24-hour HH:MM" },
+                            "end_time": { "type": "string", "description": "24-hour HH:MM" },
+                            "estimated_cost_usd": { "type": "number", "minimum": 0 },
+                            "why_it_fits": { "type": "string" }
+                          },
+                          "required": ["title", "description", "category", "neighborhood", "start_time", "end_time", "estimated_cost_usd", "why_it_fits"]
+                        }
+                      }
+                    },
+                    "required": ["subgroup_participants", "split_reason", "options"]
+                  }
+                }
+              },
+              "required": ["time_block", "subgroups"]
+            }
+          }
+        },
+        "required": ["date", "blocks"]
+      }
+    }
+  },
+  "required": ["days"]
+}
