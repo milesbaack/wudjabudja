@@ -58,4 +58,6 @@ Optional: `GEMINI_MODEL=gemini-3.5-flash-lite` to try the cheaper model. Default
 - Budget rule: lowest member's cap wins
 - Budget category names and `trip_type` values depend on the final `schema.sql`
 
-`GeminiTest.java` is a throwaway harness with its own tiny JSON parser so it runs with no setup. The real client in Sprint 5 uses Jackson inside Spring Boot.
+`GeminiTest.java` is a throwaway harness with its own tiny JSON parser so it runs with no setup. The real client is `GeminiService` in the backend (MVP-05) and uses Jackson.
+
+**Keep in sync:** the backend reads its own copies of `prompts/itinerary_system.txt` and `schemas/itinerary_schema.json` from `Code/backend/src/main/resources/ai/`. If you change one here, copy it there too.
