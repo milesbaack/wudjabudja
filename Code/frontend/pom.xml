@@ -38,6 +38,15 @@
             <version>${jackson.version}</version>
         </dependency>
 
+        <!--Junnit Dependency for JSON Store added by Lukas-->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>5.14.3</version>
+            <scope>test</scope>
+        </dependency>
+
+
         <!-- Jackson Date/Time Support -->
         <dependency>
             <groupId>com.fasterxml.jackson.datatype</groupId>
@@ -45,6 +54,7 @@
             <version>${jackson.version}</version>
         </dependency>
     </dependencies>
+
 
     <build>
         <plugins>
