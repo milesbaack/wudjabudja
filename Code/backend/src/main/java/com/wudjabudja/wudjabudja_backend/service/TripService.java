@@ -22,7 +22,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-// Checks and creates trips (TRIP-01). Sprint 1 is single-user, so user 1 creates and leads every trip.
+// Checks and creates trips (MVP-11). Sprint 1 is single-user, so user 1 creates and leads every trip.
 @Service
 public class TripService {
 

@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-// Checks the trip rules from TRIP-01 without a database.
+// Checks the trip rules from MVP-11 without a database.
 class TripServiceTest {
 
     private static TripRequest trip(String start, String end, String type, String budget) {

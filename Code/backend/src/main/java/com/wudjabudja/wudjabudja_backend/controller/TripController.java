@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import java.net.URI;
 import java.util.List;
 
-// Create and look up trips (TRIP-01). The rules live in TripService; this class just maps URLs.
+// Create and look up trips (MVP-11). The rules live in TripService; this class just maps URLs.
 @RestController
 @RequestMapping("/api/trips")
 public class TripController {

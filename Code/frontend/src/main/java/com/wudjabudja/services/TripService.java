@@ -8,7 +8,7 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * Creates and loads trips through Spring Boot (TRIP-01).
+ * Creates and loads trips through Spring Boot (MVP-11).
  */
 public class TripService {
 
