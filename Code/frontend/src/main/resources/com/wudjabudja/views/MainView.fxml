@@ -73,6 +73,10 @@
                     maxWidth="Infinity"
                     onAction="#showPreferences" />
 
+            <Button fx:id="navItineraryBtn" text="🗺️  Itinerary"
+                    maxWidth="Infinity"
+                    onAction="#showItinerary" />
+
             <Button fx:id="navVotingBtn" text="🗳️  Group Voting"
                     maxWidth="Infinity"
                     onAction="#showVoting" />

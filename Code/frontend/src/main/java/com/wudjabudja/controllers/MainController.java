@@ -42,6 +42,9 @@ public class MainController implements Initializable {
     private Button navPreferencesBtn;
 
     @FXML
+    private Button navItineraryBtn;
+
+    @FXML
     private Button navVotingBtn;
 
     @FXML
@@ -66,6 +69,7 @@ public class MainController implements Initializable {
                 navDashboardBtn,
                 navTripsBtn,
                 navPreferencesBtn,
+                navItineraryBtn,
                 navVotingBtn,
                 navBriefingBtn
         );
@@ -113,6 +117,17 @@ public class MainController implements Initializable {
         }
         setActiveButton(navPreferencesBtn);
         loadCenterView("/com/wudjabudja/views/PreferenceView.fxml");
+    }
+
+    @FXML
+    public void showItinerary(ActionEvent event) {
+        if (!AppSession.hasTrip()) {
+            AppSession.setFlashMessage("Create a trip (or open one under \"Your trips\") to see its itinerary.");
+            showTripSetup(null);
+            return;
+        }
+        setActiveButton(navItineraryBtn);
+        loadCenterView("/com/wudjabudja/views/ItineraryView.fxml");
     }
 
     @FXML
