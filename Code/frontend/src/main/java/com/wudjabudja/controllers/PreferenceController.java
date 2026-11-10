@@ -3,6 +3,7 @@ package com.wudjabudja.controllers;
 import com.wudjabudja.models.PreferenceRequest;
 import com.wudjabudja.navigation.NavigationManager;
 import com.wudjabudja.services.PreferenceService;
+import com.wudjabudja.session.AppSession;
 import javafx.collections.FXCollections;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -30,6 +31,7 @@ public class PreferenceController implements Initializable {
     @FXML private Label stepCounterLabel;
     @FXML private ProgressBar quizProgressBar;
     @FXML private Label stepHeadingLabel;
+    @FXML private Label tripLabel;
 
     // Step Panes
     @FXML private VBox step1Pane;
@@ -97,8 +99,7 @@ public class PreferenceController implements Initializable {
 
     private final PreferenceService preferenceService = new PreferenceService();
 
-    private static final Long DEFAULT_TRIP_ID = 1L;
-    private static final Long DEFAULT_USER_ID = 1L;
+    // Answers are saved for the trip picked on Trip Setup (AppSession), as user 1 until real login exists
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -143,15 +144,20 @@ public class PreferenceController implements Initializable {
             perBlockCapLabel.setText("$" + newVal.intValue() + " / activity");
         });
 
-        // 4. Load from in-memory cache if available, else set defaults
+        // 4. Show which trip these answers are for
+        if (tripLabel != null && AppSession.getCurrentTrip() != null) {
+            tripLabel.setText("For your trip: " + AppSession.getCurrentTrip().title());
+        }
+
+        // 5. Reuse cached answers only if they belong to this trip, else start from defaults
         PreferenceRequest existing = PreferenceService.getCurrentPreferences();
-        if (existing != null) {
+        if (existing != null && existing.getTripId() != null && existing.getTripId().equals(AppSession.getTripId())) {
             populateFromRequest(existing);
         } else {
             resetDefaults();
         }
 
-        // 5. Initialize view to Step 1
+        // 6. Initialize view to Step 1
         showStep(1);
     }
 
@@ -328,6 +334,11 @@ public class PreferenceController implements Initializable {
     }
 
     private PreferenceRequest buildRequestFromInputs() {
+        if (AppSession.getTripId() == null) {
+            showStatus("No trip selected. Use \"Plan a Trip\" to create one first.", true);
+            return null;
+        }
+
         String timeStr = wakeTimeCombo.getValue();
         if (timeStr == null || timeStr.trim().isEmpty()) {
             showStatus("Please select a preferred wake-up time.", true);
@@ -357,8 +368,8 @@ public class PreferenceController implements Initializable {
         }
 
         return new PreferenceRequest(
-                DEFAULT_TRIP_ID,
-                DEFAULT_USER_ID,
+                AppSession.getTripId(),
+                AppSession.USER_ID,
                 formattedWakeTime,
                 experience,
                 maxRadius,
@@ -384,12 +395,16 @@ public class PreferenceController implements Initializable {
     @FXML
     public void handleLoadPreferences(ActionEvent event) {
         showStatus("Loading preferences from server...", false);
-        PreferenceService.LoadResult result = preferenceService.loadPreferences(DEFAULT_TRIP_ID, DEFAULT_USER_ID);
+        if (AppSession.getTripId() == null) {
+            showStatus("No trip selected. Use \"Plan a Trip\" to create one first.", true);
+            return;
+        }
+        PreferenceService.LoadResult result = preferenceService.loadPreferences(AppSession.getTripId(), AppSession.USER_ID);
 
         if (result.isSuccess() && result.getPreferences() != null) {
             populateFromRequest(result.getPreferences());
+            showStep(6); // Jump straight to Review to see loaded values (this clears the status)
             showStatus("✓ " + result.getMessage(), false);
-            showStep(6); // Jump straight to Review to see loaded values
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }
@@ -402,8 +417,8 @@ public class PreferenceController implements Initializable {
 
         PreferenceService.SaveResult result = preferenceService.savePreferences(request);
         if (result.isSuccess()) {
-            showStatus("✓ Preferences saved! Taking you to the dashboard...", false);
-            NavigationManager.getInstance().navigateTo("dashboard");
+            showStatus("✓ Preferences saved! Taking you to your itinerary...", false);
+            NavigationManager.getInstance().navigateTo("itinerary");
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }
