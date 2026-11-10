@@ -11,6 +11,108 @@
 
 ---
 
+## Run it locally (Mac)
+
+The Sprint 1 flow: log in with anything → **Plan a Trip** (destination, dates, trip type, budget) → preferences quiz → **Generate** → Gemini's itinerary on screen. Trips, quiz answers and itineraries live in Postgres, so they survive restarts.
+
+### Prerequisites
+
+| Tool | Install | Check |
+| :--- | :--- | :--- |
+| Homebrew | [brew.sh](https://brew.sh) | `brew --version` |
+| JDK 17 or newer | `brew install --cask temurin` | `java -version` |
+| Maven (frontend only, the backend has its own wrapper) | `brew install maven` | `mvn -v` |
+| PostgreSQL | Option A or B below | `psql --version` |
+| Gemini API key | [Google AI Studio](https://aistudio.google.com/apikey) | |
+
+**Postgres option A: Homebrew.** User is your Mac username, no password.
+```sh
+brew install postgresql@17
+brew services start postgresql@17
+# postgresql@17 is "keg-only", so its tools aren't on your PATH yet:
+echo 'export PATH="$(brew --prefix postgresql@17)/bin:$PATH"' >> ~/.zshrc
+```
+Then open a new terminal tab.
+
+**Postgres option B: EDB installer** (from postgresql.org). User is `postgres`, with the password you picked during install. Add this to `~/.zshrc` (change `18` to your version), then open a new tab:
+```sh
+export PATH="/Library/PostgreSQL/18/bin:$PATH"
+export PGHOST=localhost
+export PGUSER=postgres
+```
+To skip the password prompt, put `localhost:5432:*:postgres:YOUR_PASSWORD` in `~/.pgpass` and run `chmod 600 ~/.pgpass`.
+
+Only run one Postgres server at a time. Both want port 5432.
+
+### One-time database setup (from the repo root)
+```sh
+createdb wudjabudja
+psql -d wudjabudja -f Code/database/schema.sql   # the 6 tables
+psql -d wudjabudja -f Code/database/seed.sql     # demo user 1 (safe to run again)
+psql -d wudjabudja -c "SELECT id, email FROM users;"   # expect: 1 | demo@wudjabudja.local
+```
+To start over from empty: `dropdb wudjabudja`, then run the three commands again. This deletes every trip.
+
+### Point the backend at your database
+Create `Code/backend/src/main/resources/application-local.properties`. Spring loads it automatically, and it is gitignored so your password never gets committed.
+```properties
+spring.datasource.url=jdbc:postgresql://localhost:5432/wudjabudja
+spring.datasource.username=YOUR_MAC_USERNAME
+spring.datasource.password=
+```
+- Option A (Homebrew): your Mac username (`whoami`), password left blank.
+- Option B (EDB): username `postgres`, password the one you picked.
+
+Don't put comments at the end of these lines. In a `.properties` file they become part of the value. Double-check it's ignored with `git check-ignore -v Code/backend/src/main/resources/application-local.properties`, which should print a match.
+
+### Gemini key
+Add `export GEMINI_API_KEY="your-key"` to `~/.zshrc` and open a new terminal tab. Never put the key in a file inside the repo (the repo is public), and never in the JavaFX app. Only the backend uses it.
+
+### Run it (two terminal tabs)
+
+**Tab 1, backend** (wait for `Started WudjabudjaBackendApplication`):
+```sh
+cd Code/backend
+echo ${GEMINI_API_KEY:+key is set}   # should print "key is set"
+sh mvnw spring-boot:run
+```
+
+**Tab 2, frontend:**
+```sh
+cd Code/frontend
+mvn javafx:run
+```
+
+### Click path
+1. Log in with any email and password (real login comes in Sprint 3). You land on **🧭 Plan a Trip**.
+2. Enter a destination, start and end dates (1 to 7 days), trip type and total budget. Click **Create Trip & Start Quiz**.
+3. Answer the 6 quiz steps, then click **Save & Continue** on the review step.
+4. On **🗺️ Itinerary**, click **Generate my itinerary**. Gemini takes about 1 to 3 minutes. You get 3 options for every morning, afternoon and evening.
+5. **Regenerate** replaces the itinerary. **Plan a Trip → Your trips → Open** reopens an earlier trip.
+
+### API routes (for curl or debugging)
+
+| Route | What it does |
+| :--- | :--- |
+| `POST /api/trips` | Create a trip: `destination`, `start_date`, `end_date`, `trip_type`, `total_budget`, optional `title`. Returns `201` with its `id`. |
+| `GET /api/trips` / `GET /api/trips/{id}` | List user 1's trips / get one trip |
+| `POST /api/trips/{id}/preferences` | Save (upsert) quiz answers |
+| `GET /api/trips/{id}/preferences?userId=1` | Load quiz answers (`404` if none) |
+| `POST /api/trips/{id}/itinerary` | Call Gemini, replace the saved itinerary, return it (slow) |
+| `GET /api/trips/{id}/itinerary` | Saved itinerary with each option's database `id` (`404` if none yet) |
+
+`trip_type` is one of `guys_trip`, `girls_trip`, `friends_trip`, `couples_trip`, `family_trip`, `solo_trip`. Errors always come back as JSON with a `message`.
+
+### Gotchas
+- **Use `sh mvnw`, not `./mvnw`.** The wrapper isn't marked executable in git (or run `chmod +x mvnw` once).
+- **The key has to be in the same terminal that starts the backend.** If you exported it in another tab, or added it to `~/.zshrc` without opening a new tab, Generate fails with `GEMINI_API_KEY is not set on the backend`.
+- **`contextLoads` and `ItineraryStoreDbTest` need the database** (schema + seed loaded). The rest run without it: `sh mvnw test -Dtest='TripContextTest,GeminiServiceTest,TripServiceTest,ItineraryStoreTest'`.
+- **Old routes still answering after a pull?** Run `sh mvnw clean` once. Classes deleted from the source stay in `target/` until you clean.
+- **`Demo user 1 is missing`** means `seed.sql` wasn't loaded.
+- **Gemini answers are checked** (dates, wake time + 1 hour, per-activity cap, everyone in exactly one subgroup). If one fails you'll see the exact rule in red. Click **Regenerate**. Very low per-activity caps fail more often.
+
+---
+
 ## MVP Approach & Philosophy (Sprints 1 and 2)
 
 **Scaffolding first.** Everything runs locally (local PostgreSQL, local Spring Boot), and we connect the pieces we already built in the most minimal way possible, then expand from there. Authentication, email invites, hosted infrastructure, and secondary nice-to-have features move to later sprints.
