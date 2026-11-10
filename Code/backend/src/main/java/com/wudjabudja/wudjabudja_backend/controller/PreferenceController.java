@@ -11,14 +11,11 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Map;
 
 @RestController                  // "this class answers web requests"
 @RequestMapping("/api/trips")    // every address here starts with /api/trips
 public class PreferenceController {
-
-    private static final DateTimeFormatter HH_MM = DateTimeFormatter.ofPattern("HH:mm");
 
     private final UserPreferenceRepository repository;
     private final TripRepository tripRepository;
@@ -63,23 +60,23 @@ public class PreferenceController {
     }
 
     // Runs when someone sends GET /api/trips/{tripId}/preferences?userId=1
-    // Sends back the same JSON shape the quiz saves, so the quiz can fill itself back in.
     @GetMapping("/{tripId}/preferences")
-    public PreferenceRequest loadPreferences(@PathVariable Long tripId, @RequestParam Long userId) {
-        requireTrip(tripId);
-        UserPreference pref = repository.findByTripIdAndUserId(tripId, userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
-                        "No preferences saved yet for user " + userId + " on trip " + tripId));
+    public ResponseEntity<?> loadPreferences(
+            @PathVariable Long tripId,
+            @RequestParam("userId") Long userId) {
 
-        return new PreferenceRequest(
-                pref.getTripId(),
-                pref.getUserId(),
-                pref.getWakeTime().format(HH_MM),     // "08:30", same as the quiz sends
-                pref.getExperienceLevel(),
-                pref.getMaxRadiusMiles(),
-                pref.getCategoricalBudgets(),
-                pref.getPerBlockCapUsd(),
-                pref.getInterests());
+        return repository.findByTripIdAndUserId(tripId, userId)
+                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(new PreferenceRequest(
+                        p.getTripId(),
+                        p.getUserId(),
+                        p.getWakeTime() != null ? p.getWakeTime().toString() : null,
+                        p.getExperienceLevel(),
+                        p.getMaxRadiusMiles(),
+                        p.getCategoricalBudgets(),
+                        p.getPerBlockCapUsd(),
+                        p.getInterests())))
+                .orElseGet(() -> ResponseEntity.status(404)
+                        .body(Map.of("message", "No preferences saved yet")));
     }
 
     private void requireTrip(Long tripId) {
