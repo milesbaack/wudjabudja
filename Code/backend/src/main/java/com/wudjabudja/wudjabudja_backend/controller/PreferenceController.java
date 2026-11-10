@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController                  // "this class answers web requests"
 @RequestMapping("/api/trips")    // every address here starts with /api/trips
-public class PreferenceController {
+public class    PreferenceController {
 
     private final UserPreferenceRepository repository;
 
@@ -50,5 +50,25 @@ public class PreferenceController {
         // Step 3: save it to the database and reply
         UserPreference saved = repository.save(pref);
         return ResponseEntity.ok(Map.of("id", saved.getId(), "message", "Preferences saved"));
+    }
+
+    // Runs when someone sends GET /api/trips/{tripId}/preferences?userId=1
+    @GetMapping("/{tripId}/preferences")
+    public ResponseEntity<?> loadPreferences(
+            @PathVariable Long tripId,
+            @RequestParam("userId") Long userId) {
+
+        return repository.findByTripIdAndUserId(tripId, userId)
+                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(new PreferenceRequest(
+                        p.getTripId(),
+                        p.getUserId(),
+                        p.getWakeTime() != null ? p.getWakeTime().toString() : null,
+                        p.getExperienceLevel(),
+                        p.getMaxRadiusMiles(),
+                        p.getCategoricalBudgets(),
+                        p.getPerBlockCapUsd(),
+                        p.getInterests())))
+                .orElseGet(() -> ResponseEntity.status(404)
+                        .body(Map.of("message", "No preferences saved yet")));
     }
 }
