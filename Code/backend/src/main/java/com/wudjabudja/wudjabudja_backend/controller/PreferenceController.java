@@ -2,9 +2,12 @@ package com.wudjabudja.wudjabudja_backend.controller;
 
 import com.wudjabudja.wudjabudja_backend.dto.PreferenceRequest;
 import com.wudjabudja.wudjabudja_backend.model.UserPreference;
+import com.wudjabudja.wudjabudja_backend.model.TripRepository;
 import com.wudjabudja.wudjabudja_backend.model.UserPreferenceRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
@@ -12,13 +15,15 @@ import java.util.Map;
 
 @RestController                  // "this class answers web requests"
 @RequestMapping("/api/trips")    // every address here starts with /api/trips
-public class    PreferenceController {
+public class PreferenceController {
 
     private final UserPreferenceRepository repository;
+    private final TripRepository tripRepository;
 
-    // Spring hands us the repository automatically
-    public PreferenceController(UserPreferenceRepository repository) {
+    // Spring hands us the repositories automatically
+    public PreferenceController(UserPreferenceRepository repository, TripRepository tripRepository) {
         this.repository = repository;
+        this.tripRepository = tripRepository;
     }
 
     // Runs when someone sends POST /api/trips/{tripId}/preferences
@@ -30,6 +35,8 @@ public class    PreferenceController {
         if (request.userId() == null) {
             return ResponseEntity.badRequest().body(Map.of("message", "user_id is required"));
         }
+        // A clear 404 instead of a foreign key error when the trip doesn't exist
+        requireTrip(tripId);
 
         // Step 1: find this user's existing row for this trip, or make a new one
         UserPreference pref = repository
@@ -70,5 +77,11 @@ public class    PreferenceController {
                         p.getInterests())))
                 .orElseGet(() -> ResponseEntity.status(404)
                         .body(Map.of("message", "No preferences saved yet")));
+    }
+
+    private void requireTrip(Long tripId) {
+        if (!tripRepository.existsById(tripId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Trip " + tripId + " not found");
+        }
     }
 }

@@ -1,6 +1,8 @@
 package com.wudjabudja.controllers;
 
 import com.wudjabudja.navigation.NavigationManager;
+import com.wudjabudja.services.PreferenceService;
+import com.wudjabudja.session.AppSession;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -28,6 +30,9 @@ public class MainController implements Initializable {
     private StackPane contentArea;
 
     @FXML
+    private Button navTripSetupBtn;
+
+    @FXML
     private Button navDashboardBtn;
 
     @FXML
@@ -35,6 +40,9 @@ public class MainController implements Initializable {
 
     @FXML
     private Button navPreferencesBtn;
+
+    @FXML
+    private Button navItineraryBtn;
 
     @FXML
     private Button navVotingBtn;
@@ -57,9 +65,11 @@ public class MainController implements Initializable {
         NavigationManager.getInstance().setMainController(this);
 
         navButtons = Arrays.asList(
+                navTripSetupBtn,
                 navDashboardBtn,
                 navTripsBtn,
                 navPreferencesBtn,
+                navItineraryBtn,
                 navVotingBtn,
                 navBriefingBtn
         );
@@ -74,9 +84,15 @@ public class MainController implements Initializable {
                 loadCenterView(initialView);
             }
         } else {
-            // Load default starting view
-            showDashboard(null);
+            // Sprint 1 flow starts at Trip Setup: plan a trip -> quiz -> itinerary
+            showTripSetup(null);
         }
+    }
+
+    @FXML
+    public void showTripSetup(ActionEvent event) {
+        setActiveButton(navTripSetupBtn);
+        loadCenterView("/com/wudjabudja/views/TripSetupView.fxml");
     }
 
     @FXML
@@ -93,8 +109,25 @@ public class MainController implements Initializable {
 
     @FXML
     public void showPreferences(ActionEvent event) {
+        // The quiz saves answers for a specific trip, so there has to be one first
+        if (!AppSession.hasTrip()) {
+            AppSession.setFlashMessage("Create a trip first, then take the preferences quiz for it.");
+            showTripSetup(null);
+            return;
+        }
         setActiveButton(navPreferencesBtn);
         loadCenterView("/com/wudjabudja/views/PreferenceView.fxml");
+    }
+
+    @FXML
+    public void showItinerary(ActionEvent event) {
+        if (!AppSession.hasTrip()) {
+            AppSession.setFlashMessage("Create a trip (or open one under \"Your trips\") to see its itinerary.");
+            showTripSetup(null);
+            return;
+        }
+        setActiveButton(navItineraryBtn);
+        loadCenterView("/com/wudjabudja/views/ItineraryView.fxml");
     }
 
     @FXML
@@ -111,6 +144,9 @@ public class MainController implements Initializable {
 
     @FXML
     public void handleLogout(ActionEvent event) {
+        // Forget the open trip and cached quiz answers so the next login starts fresh
+        AppSession.clear();
+        PreferenceService.setCurrentPreferences(null);
         try {
             Parent loginRoot = FXMLLoader.load(getClass().getResource("/com/wudjabudja/views/LoginView.fxml"));
             Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();

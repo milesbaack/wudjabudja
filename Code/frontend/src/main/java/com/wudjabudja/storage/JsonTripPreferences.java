@@ -1,6 +1,6 @@
-package com.wudjabudja.models;
+package com.wudjabudja.storage;
 
-public record TripPreferences(
+public record JsonTripPreferences(
         String destination,
         String budget,
         String travelStyle,

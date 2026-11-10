@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<!-- Itinerary (MVP-09): Gemini's options by day and time block. Day cards are built in ItineraryController. -->
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.ItineraryController"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+
+    <content>
+        <VBox spacing="20.0" style="-fx-background-color: #f8fafc;">
+            <padding>
+                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
+            </padding>
+
+            <!-- Trip header + actions -->
+            <VBox spacing="10.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Label text="🗺️ ITINERARY"
+                           style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 12;">
+                        <font><Font size="11.0" /></font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="generatedLabel" text="" textFill="#94a3b8">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </HBox>
+                <Label fx:id="tripTitleLabel" text="Your trip" textFill="#0f172a" wrapText="true">
+                    <font><Font name="System Bold" size="22.0" /></font>
+                </Label>
+                <Label fx:id="tripDetailsLabel" text="" textFill="#64748b" wrapText="true">
+                    <font><Font size="13.0" /></font>
+                </Label>
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <padding><Insets top="6.0" /></padding>
+                    <Button fx:id="generateBtn" text="✨ Generate my itinerary" onAction="#handleGenerate"
+                            style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <Button fx:id="editPrefsBtn" text="⚙️ Edit preferences" onAction="#goToPreferences"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 10 16; -fx-cursor: hand;" />
+                </HBox>
+
+                <!-- Spinner while Gemini works -->
+                <HBox fx:id="busyBox" alignment="CENTER_LEFT" spacing="12.0" visible="false" managed="false"
+                      style="-fx-background-color: #f0f9ff; -fx-background-radius: 8; -fx-padding: 12 14;">
+                    <ProgressIndicator prefWidth="28.0" prefHeight="28.0" />
+                    <Label fx:id="busyLabel" text="" textFill="#0369a1" wrapText="true">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                </HBox>
+
+                <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity" visible="false" managed="false">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Shown when nothing has been generated yet -->
+            <VBox fx:id="emptyStateBox" spacing="8.0" alignment="CENTER" visible="false" managed="false"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-style: segments(6, 4); -fx-border-radius: 12; -fx-padding: 36;">
+                <Label text="🧳" style="-fx-font-size: 34px;" />
+                <Label text="No itinerary yet" textFill="#0f172a">
+                    <font><Font name="System Bold" size="16.0" /></font>
+                </Label>
+                <Label text="Click &quot;Generate my itinerary&quot; and Gemini will suggest 3 options for every morning, afternoon and evening of your trip, based on your quiz answers."
+                       textFill="#64748b" wrapText="true" maxWidth="520.0" style="-fx-text-alignment: center;">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- One card per day, filled in by ItineraryController.showItinerary -->
+            <VBox fx:id="daysBox" spacing="20.0" />
+
+        </VBox>
+    </content>
+</ScrollPane>

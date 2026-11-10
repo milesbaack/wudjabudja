@@ -76,8 +76,7 @@ public class PreferenceService {
                 currentPreferences = request;
                 return new SaveResult(true, "Preferences saved successfully to server!");
             } else {
-                String errorBody = response.body() != null && !response.body().isBlank() ? " (" + response.body() + ")" : "";
-                return new SaveResult(false, "Server rejected preferences with HTTP " + response.statusCode() + errorBody);
+                return new SaveResult(false, "Server rejected preferences: " + errorMessage(response));
             }
         } catch (Exception e) {
             System.err.println("MVP-08 Save failed: " + e.getMessage());
@@ -119,12 +118,26 @@ public class PreferenceService {
                 currentPreferences = pref;
                 return new LoadResult(true, "Preferences loaded successfully from server!", pref);
             } else {
-                return new LoadResult(false, "Server returned HTTP " + response.statusCode() + " when loading preferences.", null);
+                if (response.statusCode() == 404) {
+                    return new LoadResult(false, "Nothing saved yet for this trip. Answer the quiz and click Save.", null);
+                }
+                return new LoadResult(false, "Couldn't load preferences: " + errorMessage(response), null);
             }
         } catch (Exception e) {
             System.err.println("MVP-08 Load failed: " + e.getMessage());
             return new LoadResult(false, "Failed to connect to Spring Boot backend at " + baseUrl + ". Ensure the backend is running.", null);
         }
+    }
+
+    // The backend's {"message": "..."} if it sent one, else the HTTP status
+    private String errorMessage(HttpResponse<String> response) {
+        try {
+            com.fasterxml.jackson.databind.JsonNode json = objectMapper.readTree(response.body());
+            if (json != null && json.hasNonNull("message")) return json.get("message").asText();
+        } catch (Exception ignored) {
+            // not JSON
+        }
+        return "HTTP " + response.statusCode();
     }
 
     public static PreferenceRequest getCurrentPreferences() {

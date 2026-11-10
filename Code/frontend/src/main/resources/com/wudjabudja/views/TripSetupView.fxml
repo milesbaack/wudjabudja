@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.DatePicker?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Font?>
+
+<!-- Trip Setup: where a trip starts. Destination, dates, type and budget, then on to the quiz. -->
+<ScrollPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.TripSetupController"
+            fitToWidth="true"
+            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+
+    <content>
+        <VBox spacing="20.0" style="-fx-background-color: #f8fafc;" maxWidth="820.0">
+            <padding>
+                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
+            </padding>
+
+            <!-- Header -->
+            <VBox spacing="10.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Label text="🧭 PLAN A TRIP"
+                           style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 12;">
+                        <font><Font size="11.0" /></font>
+                    </Label>
+                </HBox>
+                <Label text="Where are you headed?" textFill="#0f172a">
+                    <font><Font name="System Bold" size="20.0" /></font>
+                </Label>
+                <Label text="Set up the basics, then take the preferences quiz. Gemini uses both to plan morning, afternoon and evening options for every day."
+                       textFill="#64748b" wrapText="true">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Shown when a trip is already open, so you can jump back in -->
+            <HBox fx:id="currentTripBox" alignment="CENTER_LEFT" spacing="12.0" visible="false" managed="false"
+                  style="-fx-background-color: #eff6ff; -fx-border-color: #bfdbfe; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 16;">
+                <Label fx:id="currentTripLabel" text="" textFill="#1e3a8a" wrapText="true">
+                    <font><Font name="System Bold" size="13.0" /></font>
+                </Label>
+                <Region HBox.hgrow="ALWAYS" />
+                <Button text="Quiz →" onAction="#goToQuiz"
+                        style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
+                <Button text="Itinerary →" onAction="#goToItinerary"
+                        style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 7 12; -fx-background-radius: 8; -fx-cursor: hand;" />
+            </HBox>
+
+            <!-- The form -->
+            <VBox spacing="16.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 24; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+
+                <!-- Destination -->
+                <VBox spacing="6.0">
+                    <Label text="Destination" textFill="#0f172a">
+                        <font><Font name="System Bold" size="14.0" /></font>
+                    </Label>
+                    <TextField fx:id="destinationField" promptText="e.g. San Diego" maxWidth="420.0"
+                               style="-fx-background-radius: 8; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-padding: 8 10;" />
+                    <Label fx:id="destinationError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </VBox>
+
+                <!-- Dates -->
+                <VBox spacing="6.0">
+                    <Label text="Dates" textFill="#0f172a">
+                        <font><Font name="System Bold" size="14.0" /></font>
+                    </Label>
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <DatePicker fx:id="startDatePicker" promptText="Start date" prefWidth="170.0" />
+                        <Label text="to" textFill="#64748b" />
+                        <DatePicker fx:id="endDatePicker" promptText="End date" prefWidth="170.0" />
+                        <Label fx:id="tripLengthLabel" text="" textFill="#2563eb">
+                            <font><Font name="System Bold" size="13.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Label text="1 to 7 days." textFill="#94a3b8">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                    <Label fx:id="datesError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </VBox>
+
+                <!-- Trip type -->
+                <VBox spacing="6.0">
+                    <Label text="Trip type" textFill="#0f172a">
+                        <font><Font name="System Bold" size="14.0" /></font>
+                    </Label>
+                    <ComboBox fx:id="tripTypeCombo" promptText="Choose one" prefWidth="220.0" />
+                    <Label fx:id="tripTypeError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </VBox>
+
+                <!-- Budget -->
+                <VBox spacing="6.0">
+                    <Label text="Total budget" textFill="#0f172a">
+                        <font><Font name="System Bold" size="14.0" /></font>
+                    </Label>
+                    <HBox alignment="CENTER_LEFT" spacing="8.0">
+                        <Label text="\$" textFill="#334155">
+                            <font><Font name="System Bold" size="15.0" /></font>
+                        </Label>
+                        <TextField fx:id="budgetField" promptText="2400" prefWidth="160.0"
+                                   style="-fx-background-radius: 8; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-padding: 8 10;" />
+                        <Label text="USD for the whole trip" textFill="#94a3b8">
+                            <font><Font size="12.0" /></font>
+                        </Label>
+                    </HBox>
+                    <Label fx:id="budgetError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </VBox>
+
+                <Region prefHeight="1.0" style="-fx-background-color: #f1f5f9;" />
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Button fx:id="createTripBtn" text="Create Trip &amp; Start Quiz →" onAction="#handleCreateTrip"
+                            style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <ProgressIndicator fx:id="createSpinner" prefWidth="24.0" prefHeight="24.0" visible="false" />
+                </HBox>
+
+                <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity">
+                    <font><Font size="13.0" /></font>
+                </Label>
+            </VBox>
+
+            <!-- Earlier trips, so you can reopen one after restarting the app -->
+            <VBox spacing="10.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <Label text="Your trips" textFill="#0f172a">
+                    <font><Font name="System Bold" size="15.0" /></font>
+                </Label>
+                <Label fx:id="tripsMessageLabel" text="Loading..." textFill="#64748b" wrapText="true">
+                    <font><Font size="13.0" /></font>
+                </Label>
+                <VBox fx:id="tripsList" spacing="8.0" />
+            </VBox>
+
+        </VBox>
+    </content>
+</ScrollPane>

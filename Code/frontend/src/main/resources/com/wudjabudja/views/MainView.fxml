@@ -57,6 +57,10 @@
                 </VBox.margin>
             </Label>
 
+            <Button fx:id="navTripSetupBtn" text="🧭  Plan a Trip"
+                    maxWidth="Infinity"
+                    onAction="#showTripSetup" />
+
             <Button fx:id="navDashboardBtn" text="🏠  Dashboard"
                     maxWidth="Infinity"
                     onAction="#showDashboard" />
@@ -68,6 +72,10 @@
             <Button fx:id="navPreferencesBtn" text="⚙️  Preferences"
                     maxWidth="Infinity"
                     onAction="#showPreferences" />
+
+            <Button fx:id="navItineraryBtn" text="🗺️  Itinerary"
+                    maxWidth="Infinity"
+                    onAction="#showItinerary" />
 
             <Button fx:id="navVotingBtn" text="🗳️  Group Voting"
                     maxWidth="Infinity"

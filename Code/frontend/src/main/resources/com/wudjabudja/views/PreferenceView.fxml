@@ -53,6 +53,9 @@
                        textFill="#64748b" wrapText="true">
                     <font><Font size="13.0" /></font>
                 </Label>
+                <Label fx:id="tripLabel" text="" textFill="#2563eb" wrapText="true">
+                    <font><Font name="System Bold" size="13.0" /></font>
+                </Label>
             </VBox>
 
             <!-- Dynamic Question Content Area (Only active step is shown) -->
