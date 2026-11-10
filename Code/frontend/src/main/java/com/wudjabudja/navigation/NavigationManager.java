@@ -63,7 +63,9 @@ public class NavigationManager {
             System.err.println("NavigationManager: MainController is not registered!");
             return;
         }
-        if ("preferences".equalsIgnoreCase(destination) || "quiz".equalsIgnoreCase(destination)) {
+        if ("tripsetup".equalsIgnoreCase(destination) || "plan".equalsIgnoreCase(destination)) {
+            mainController.showTripSetup(null);
+        } else if ("preferences".equalsIgnoreCase(destination) || "quiz".equalsIgnoreCase(destination)) {
             mainController.showPreferences(null);
         } else if ("dashboard".equalsIgnoreCase(destination)) {
             mainController.showDashboard(null);
