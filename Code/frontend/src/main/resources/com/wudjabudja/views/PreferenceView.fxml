@@ -56,6 +56,19 @@
                 <Label fx:id="tripLabel" text="" textFill="#2563eb" wrapText="true">
                     <font><Font name="System Bold" size="13.0" /></font>
                 </Label>
+
+                <!-- Traveler Switcher for Shared Trips (GRP-03) -->
+                <HBox alignment="CENTER_LEFT" spacing="10.0"
+                      style="-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12;">
+                    <Label text="👤 Answering quiz for:" textFill="#334155">
+                        <font><Font name="System Bold" size="12.0" /></font>
+                    </Label>
+                    <ComboBox fx:id="travelerCombo" onAction="#handleTravelerSelected"
+                              prefWidth="320.0" promptText="Select traveler on trip..." />
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Button text="👥 Manage Travelers" onAction="#goToSharedTrip"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
+                </HBox>
             </VBox>
 
             <!-- Dynamic Question Content Area (Only active step is shown) -->
@@ -385,7 +398,7 @@
 
                     <!-- Save & Continue Actions -->
                     <HBox spacing="12.0" alignment="CENTER_LEFT">
-                        <Button fx:id="saveAndContinueBtn" text="Save &amp; Continue to Dashboard →"
+                        <Button fx:id="saveAndContinueBtn" text="Save &amp; Continue to Shared Trip →"
                                 onAction="#handleSaveAndContinue"
                                 style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
 

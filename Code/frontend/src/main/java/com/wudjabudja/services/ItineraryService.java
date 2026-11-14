@@ -18,11 +18,17 @@ public class ItineraryService {
 
     // GET /api/trips/{id}/itinerary. A 404 (isNotFound) means "not generated yet".
     public ApiResult<Itinerary> loadItinerary(Long tripId) {
+        if (DemoTripSupport.isDemoTrip(tripId)) {
+            return ApiResult.ok(200, DemoTripSupport.getDemoItinerary());
+        }
         return client.get("/api/trips/" + tripId + "/itinerary", LOAD_TIMEOUT, new TypeReference<Itinerary>() {});
     }
 
     // POST /api/trips/{id}/itinerary. Calls Gemini, so this can take a minute or two. Never call it on the UI thread.
     public ApiResult<Itinerary> generateItinerary(Long tripId) {
+        if (DemoTripSupport.isDemoTrip(tripId)) {
+            return ApiResult.ok(200, DemoTripSupport.regenerateDemoItinerary());
+        }
         return client.post("/api/trips/" + tripId + "/itinerary", null, GENERATE_TIMEOUT, new TypeReference<Itinerary>() {});
     }
 }

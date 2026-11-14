@@ -10,6 +10,8 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Service to serialize, submit, and load traveler preferences (MVP-08 / MVP-02).
@@ -25,6 +27,13 @@ public class PreferenceService {
 
     // Cache latest preferences in-memory for immediate UI access
     private static PreferenceRequest currentPreferences;
+    private static final Map<String, PreferenceRequest> DEMO_PREFS = new HashMap<>();
+
+    public static void seedDemoPreferences(PreferenceRequest req) {
+        if (req == null || req.getTripId() == null || req.getUserId() == null) return;
+        DEMO_PREFS.put(req.getTripId() + ":" + req.getUserId(), req);
+        ParticipantService.markQuizSavedLocally(req.getTripId(), req.getUserId());
+    }
 
     public PreferenceService() {
         this(DEFAULT_BASE_URL);
@@ -74,11 +83,19 @@ public class PreferenceService {
 
             if (response.statusCode() >= 200 && response.statusCode() < 300) {
                 currentPreferences = request;
+                if (request != null) {
+                    seedDemoPreferences(request);
+                }
                 return new SaveResult(true, "Preferences saved successfully to server!");
             } else {
                 return new SaveResult(false, "Server rejected preferences: " + errorMessage(response));
             }
         } catch (Exception e) {
+            if (request != null && DemoTripSupport.isDemoTrip(tripId)) {
+                currentPreferences = request;
+                seedDemoPreferences(request);
+                return new SaveResult(true, "Preferences saved for demo trip!");
+            }
             System.err.println("MVP-08 Save failed: " + e.getMessage());
             return new SaveResult(false, "Failed to connect to Spring Boot backend at " + baseUrl + ". Ensure the backend is running.");
         }
@@ -116,6 +133,7 @@ public class PreferenceService {
                 }
                 PreferenceRequest pref = objectMapper.readValue(body, PreferenceRequest.class);
                 currentPreferences = pref;
+                seedDemoPreferences(pref);
                 return new LoadResult(true, "Preferences loaded successfully from server!", pref);
             } else {
                 if (response.statusCode() == 404) {
@@ -124,6 +142,14 @@ public class PreferenceService {
                 return new LoadResult(false, "Couldn't load preferences: " + errorMessage(response), null);
             }
         } catch (Exception e) {
+            if (DemoTripSupport.isDemoTrip(targetTripId)) {
+                PreferenceRequest demoPref = DEMO_PREFS.get(targetTripId + ":" + targetUserId);
+                if (demoPref != null) {
+                    currentPreferences = demoPref;
+                    return new LoadResult(true, "Loaded saved demo preferences!", demoPref);
+                }
+                return new LoadResult(false, "Nothing saved yet for this traveler. Answer the quiz and click Save.", null);
+            }
             System.err.println("MVP-08 Load failed: " + e.getMessage());
             return new LoadResult(false, "Failed to connect to Spring Boot backend at " + baseUrl + ". Ensure the backend is running.", null);
         }

@@ -1,11 +1,13 @@
 package com.wudjabudja.controllers;
 
 import com.wudjabudja.models.Itinerary;
+import com.wudjabudja.models.Participant;
 import com.wudjabudja.models.Trip;
 import com.wudjabudja.models.TripType;
 import com.wudjabudja.navigation.NavigationManager;
 import com.wudjabudja.services.ApiResult;
 import com.wudjabudja.services.ItineraryService;
+import com.wudjabudja.services.ParticipantService;
 import com.wudjabudja.services.TripService;
 import com.wudjabudja.session.AppSession;
 import javafx.animation.KeyFrame;
@@ -34,6 +36,7 @@ import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -90,8 +93,10 @@ public class ItineraryController implements Initializable {
 
     private final TripService tripService = new TripService();
     private final ItineraryService itineraryService = new ItineraryService();
+    private final ParticipantService participantService = new ParticipantService();
 
     private Trip trip;
+    private final Map<Long, Participant> participantById = new HashMap<>();
     private Timeline clock;   // ticks the "(0:42)" timer while Gemini works
 
     @Override
@@ -115,7 +120,7 @@ public class ItineraryController implements Initializable {
     // ---------- loading what's already saved ----------
 
     // What we learned when the screen opened
-    private record LoadOutcome(ApiResult<Trip> trip, ApiResult<Itinerary> itinerary) {}
+    private record LoadOutcome(ApiResult<Trip> trip, ApiResult<List<Participant>> participants, ApiResult<Itinerary> itinerary) {}
 
     private void loadSaved() {
         setBusy(true, "Loading your saved itinerary...");
@@ -124,8 +129,9 @@ public class ItineraryController implements Initializable {
             @Override
             protected LoadOutcome call() {
                 ApiResult<Trip> tripResult = tripService.getTrip(tripId);
-                if (!tripResult.success()) return new LoadOutcome(tripResult, null);
-                return new LoadOutcome(tripResult, itineraryService.loadItinerary(tripId));
+                if (!tripResult.success()) return new LoadOutcome(tripResult, null, null);
+                ApiResult<List<Participant>> partResult = participantService.listParticipants(tripId);
+                return new LoadOutcome(tripResult, partResult, itineraryService.loadItinerary(tripId));
             }
         };
         task.setOnSucceeded(e -> {
@@ -156,6 +162,13 @@ public class ItineraryController implements Initializable {
         trip = tripResult.data();
         AppSession.setCurrentTrip(trip);
         showTripHeader(trip);
+
+        participantById.clear();
+        if (outcome.participants() != null && outcome.participants().success() && outcome.participants().data() != null) {
+            for (Participant p : outcome.participants().data()) {
+                if (p.userId() != null) participantById.put(p.userId(), p);
+            }
+        }
 
         ApiResult<Itinerary> itineraryResult = outcome.itinerary();
         if (itineraryResult.success()) {
@@ -244,6 +257,16 @@ public class ItineraryController implements Initializable {
         NavigationManager.getInstance().navigateTo("preferences");
     }
 
+    @FXML
+    public void goToSharedTrip(ActionEvent event) {
+        NavigationManager.getInstance().navigateTo("trips");
+    }
+
+    @FXML
+    public void goToVoting(ActionEvent event) {
+        NavigationManager.getInstance().navigateTo("voting");
+    }
+
     // ---------- drawing the itinerary ----------
 
     private void showTripHeader(Trip t) {
@@ -322,8 +345,18 @@ public class ItineraryController implements Initializable {
     // "Group 1: Traveler 1 · they want live sports while..." when Gemini splits the group
     private Label subgroupLabel(int number, Itinerary.Subgroup sub) {
         List<Long> people = sub.subgroupParticipants() == null ? List.of() : sub.subgroupParticipants();
-        String who = (people.size() == 1 ? "Traveler " : "Travelers ")
-                + people.stream().map(String::valueOf).collect(Collectors.joining(", "));
+        String who;
+        if (!participantById.isEmpty() && !people.isEmpty()) {
+            who = people.stream()
+                    .map(id -> {
+                        Participant p = participantById.get(id);
+                        return p != null ? p.shortName() : "Traveler " + id;
+                    })
+                    .collect(Collectors.joining(", "));
+        } else {
+            who = (people.size() == 1 ? "Traveler " : "Travelers ")
+                    + people.stream().map(String::valueOf).collect(Collectors.joining(", "));
+        }
         String reason = sub.splitReason() == null || sub.splitReason().isBlank() ? "" : " · " + sub.splitReason();
         Label label = new Label("👥 Group " + number + ": " + who + reason);
         label.setWrapText(true);
@@ -332,13 +365,24 @@ public class ItineraryController implements Initializable {
     }
 
     private VBox optionCard(int number, Itinerary.Option option) {
+        HBox topRow = new HBox(8);
+        topRow.setAlignment(Pos.CENTER_LEFT);
         Label pick = new Label("OPTION " + number);
         pick.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 10px;");
+        topRow.getChildren().add(pick);
+
+        if (option.isFinal()) {
+            Region sp = new Region();
+            HBox.setHgrow(sp, Priority.ALWAYS);
+            Label winnerBadge = new Label("🏆 GROUP WINNER");
+            winnerBadge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 2 8; -fx-background-radius: 8;");
+            topRow.getChildren().addAll(sp, winnerBadge);
+        }
 
         Label title = wrapped(option.title(), "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f172a;");
         Label time = wrapped("🕘 " + timeRange(option.startTime(), option.endTime()), "-fx-text-fill: #334155; -fx-font-size: 12px;");
 
-        VBox card = new VBox(6, pick, title, time);
+        VBox card = new VBox(6, topRow, title, time);
         if (option.neighborhood() != null && !option.neighborhood().isBlank()) {
             card.getChildren().add(wrapped("📍 " + option.neighborhood(), "-fx-text-fill: #334155; -fx-font-size: 12px;"));
         }
@@ -358,7 +402,9 @@ public class ItineraryController implements Initializable {
                     wrapped("💡 " + option.whyItFits(), "-fx-text-fill: #64748b; -fx-font-size: 12px; -fx-font-style: italic;"));
         }
 
-        card.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+        card.setStyle(option.isFinal()
+                ? "-fx-background-color: #fffbeb; -fx-border-color: #f59e0b; -fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;"
+                : "-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
         return card;
     }
 

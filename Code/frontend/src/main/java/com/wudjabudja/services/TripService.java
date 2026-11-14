@@ -23,6 +23,9 @@ public class TripService {
 
     // GET /api/trips/{id}
     public ApiResult<Trip> getTrip(Long tripId) {
+        if (DemoTripSupport.isDemoTrip(tripId) && DemoTripSupport.getDemoTrip() != null) {
+            return ApiResult.ok(200, DemoTripSupport.getDemoTrip());
+        }
         return client.get("/api/trips/" + tripId, TIMEOUT, new TypeReference<Trip>() {});
     }
 

@@ -1,10 +1,14 @@
 package com.wudjabudja.controllers;
 
+import com.wudjabudja.models.Participant;
 import com.wudjabudja.models.PreferenceRequest;
 import com.wudjabudja.navigation.NavigationManager;
+import com.wudjabudja.services.ApiResult;
+import com.wudjabudja.services.ParticipantService;
 import com.wudjabudja.services.PreferenceService;
 import com.wudjabudja.session.AppSession;
 import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -32,6 +36,7 @@ public class PreferenceController implements Initializable {
     @FXML private ProgressBar quizProgressBar;
     @FXML private Label stepHeadingLabel;
     @FXML private Label tripLabel;
+    @FXML private ComboBox<Participant> travelerCombo;
 
     // Step Panes
     @FXML private VBox step1Pane;
@@ -98,8 +103,8 @@ public class PreferenceController implements Initializable {
     private static final int TOTAL_STEPS = 6;
 
     private final PreferenceService preferenceService = new PreferenceService();
-
-    // Answers are saved for the trip picked on Trip Setup (AppSession), as user 1 until real login exists
+    private final ParticipantService participantService = new ParticipantService();
+    private boolean updatingTravelerCombo = false;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
@@ -144,21 +149,109 @@ public class PreferenceController implements Initializable {
             perBlockCapLabel.setText("$" + newVal.intValue() + " / activity");
         });
 
-        // 4. Show which trip these answers are for
-        if (tripLabel != null && AppSession.getCurrentTrip() != null) {
-            tripLabel.setText("For your trip: " + AppSession.getCurrentTrip().title());
-        }
+        // 4. Show which trip and traveler these answers are for
+        updateTripBanner();
 
-        // 5. Reuse cached answers only if they belong to this trip, else start from defaults
+        // 5. Reuse cached answers only if they belong to this trip AND active traveler, else start from defaults
         PreferenceRequest existing = PreferenceService.getCurrentPreferences();
-        if (existing != null && existing.getTripId() != null && existing.getTripId().equals(AppSession.getTripId())) {
+        if (existing != null
+                && existing.getTripId() != null && existing.getTripId().equals(AppSession.getTripId())
+                && existing.getUserId() != null && existing.getUserId().equals(AppSession.getActiveUserId())) {
             populateFromRequest(existing);
         } else {
             resetDefaults();
         }
 
-        // 6. Initialize view to Step 1
+        // 6. Initialize view to Step 1 and load trip participants + existing preferences for the active traveler
         showStep(1);
+        loadTravelersAndActivePreferences();
+    }
+
+    private void updateTripBanner() {
+        if (tripLabel != null && AppSession.getCurrentTrip() != null) {
+            Participant active = AppSession.getActiveTraveler();
+            tripLabel.setText("For trip: " + AppSession.getCurrentTrip().title()
+                    + "  ·  Traveler: " + active.shortName() + " (ID " + AppSession.getActiveUserId() + ")");
+        }
+    }
+
+    private void loadTravelersAndActivePreferences() {
+        Long tripId = AppSession.getTripId();
+        if (tripId == null) return;
+        Long activeUserId = AppSession.getActiveUserId();
+
+        if (travelerCombo != null) {
+            updatingTravelerCombo = true;
+            travelerCombo.getItems().setAll(AppSession.getActiveTraveler());
+            travelerCombo.setValue(AppSession.getActiveTraveler());
+            updatingTravelerCombo = false;
+        }
+
+        Task<ApiResult<List<Participant>>> task = new Task<>() {
+            @Override
+            protected ApiResult<List<Participant>> call() {
+                return participantService.listParticipants(tripId);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            ApiResult<List<Participant>> res = task.getValue();
+            if (travelerCombo != null && res.success() && res.data() != null && !res.data().isEmpty()) {
+                updatingTravelerCombo = true;
+                travelerCombo.getItems().setAll(res.data());
+                Participant match = res.data().stream()
+                        .filter(p -> p.userId() != null && p.userId().equals(AppSession.getActiveUserId()))
+                        .findFirst()
+                        .orElse(res.data().get(0));
+                AppSession.setActiveTraveler(match);
+                travelerCombo.setValue(match);
+                updatingTravelerCombo = false;
+                updateTripBanner();
+            }
+            loadPreferencesForActiveTravelerSilently(tripId, AppSession.getActiveUserId());
+        });
+        task.setOnFailed(e -> loadPreferencesForActiveTravelerSilently(tripId, activeUserId));
+        Thread t = new Thread(task, "quiz-participants-load");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void loadPreferencesForActiveTravelerSilently(Long tripId, Long userId) {
+        Task<PreferenceService.LoadResult> task = new Task<>() {
+            @Override
+            protected PreferenceService.LoadResult call() {
+                return preferenceService.loadPreferences(tripId, userId);
+            }
+        };
+        task.setOnSucceeded(e -> {
+            PreferenceService.LoadResult result = task.getValue();
+            if (result != null && result.isSuccess() && result.getPreferences() != null) {
+                populateFromRequest(result.getPreferences());
+                showStatus("✓ Loaded saved quiz answers for " + AppSession.getActiveTraveler().shortName() + ".", false);
+            }
+        });
+        Thread t = new Thread(task, "quiz-pref-preload");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    @FXML
+    public void handleTravelerSelected(ActionEvent event) {
+        if (updatingTravelerCombo || travelerCombo == null) return;
+        Participant selected = travelerCombo.getValue();
+        if (selected == null || selected.userId() == null) return;
+
+        AppSession.setActiveTraveler(selected);
+        PreferenceService.setCurrentPreferences(null);
+        updateTripBanner();
+        resetDefaults();
+        showStep(1);
+        showStatus("Switched to " + selected.shortName() + ". Checking for saved quiz answers...", false);
+        loadPreferencesForActiveTravelerSilently(AppSession.getTripId(), selected.userId());
+    }
+
+    @FXML
+    public void goToSharedTrip(ActionEvent event) {
+        NavigationManager.getInstance().navigateTo("trips");
     }
 
     private void showStep(int step) {
@@ -369,7 +462,7 @@ public class PreferenceController implements Initializable {
 
         return new PreferenceRequest(
                 AppSession.getTripId(),
-                AppSession.USER_ID,
+                AppSession.getActiveUserId(),
                 formattedWakeTime,
                 experience,
                 maxRadius,
@@ -386,7 +479,7 @@ public class PreferenceController implements Initializable {
 
         PreferenceService.SaveResult result = preferenceService.savePreferences(request);
         if (result.isSuccess()) {
-            showStatus("✓ " + result.getMessage(), false);
+            showStatus("✓ Saved preferences for " + AppSession.getActiveTraveler().shortName() + "!", false);
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }
@@ -399,12 +492,12 @@ public class PreferenceController implements Initializable {
             showStatus("No trip selected. Use \"Plan a Trip\" to create one first.", true);
             return;
         }
-        PreferenceService.LoadResult result = preferenceService.loadPreferences(AppSession.getTripId(), AppSession.USER_ID);
+        PreferenceService.LoadResult result = preferenceService.loadPreferences(AppSession.getTripId(), AppSession.getActiveUserId());
 
         if (result.isSuccess() && result.getPreferences() != null) {
             populateFromRequest(result.getPreferences());
             showStep(6); // Jump straight to Review to see loaded values (this clears the status)
-            showStatus("✓ " + result.getMessage(), false);
+            showStatus("✓ Loaded preferences for " + AppSession.getActiveTraveler().shortName() + "!", false);
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }
@@ -417,8 +510,8 @@ public class PreferenceController implements Initializable {
 
         PreferenceService.SaveResult result = preferenceService.savePreferences(request);
         if (result.isSuccess()) {
-            showStatus("✓ Preferences saved! Taking you to your itinerary...", false);
-            NavigationManager.getInstance().navigateTo("itinerary");
+            AppSession.setFlashMessage("✓ Saved quiz answers for " + AppSession.getActiveTraveler().shortName() + "!");
+            NavigationManager.getInstance().navigateTo("trips");
         } else {
             showStatus("✗ " + result.getMessage(), true);
         }

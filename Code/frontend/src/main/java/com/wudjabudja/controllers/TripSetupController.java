@@ -5,6 +5,7 @@ import com.wudjabudja.models.TripRequest;
 import com.wudjabudja.models.TripType;
 import com.wudjabudja.navigation.NavigationManager;
 import com.wudjabudja.services.ApiResult;
+import com.wudjabudja.services.DemoTripSupport;
 import com.wudjabudja.services.TripService;
 import com.wudjabudja.session.AppSession;
 import javafx.concurrent.Task;
@@ -111,8 +112,21 @@ public class TripSetupController implements Initializable {
     }
 
     @FXML
+    public void goToSharedTrip(ActionEvent event) {
+        NavigationManager.getInstance().navigateTo("trips");
+    }
+
+    @FXML
     public void goToItinerary(ActionEvent event) {
         NavigationManager.getInstance().navigateTo("itinerary");
+    }
+
+    @FXML
+    public void handleLoadDemoTrip(ActionEvent event) {
+        Trip demo = DemoTripSupport.activateDemoGroupTrip();
+        AppSession.setCurrentTrip(demo);
+        AppSession.setFlashMessage("✓ Loaded Demo Group Trip! Try adding a traveler by email, editing quizzes, or jumping to Group Voting.");
+        NavigationManager.getInstance().navigateTo("trips");
     }
 
     // ---------- form checks ----------

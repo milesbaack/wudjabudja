@@ -47,6 +47,10 @@
                     <padding><Insets top="6.0" /></padding>
                     <Button fx:id="generateBtn" text="✨ Generate my itinerary" onAction="#handleGenerate"
                             style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <Button text="👥 Travelers &amp; Quizzes" onAction="#goToSharedTrip"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 10 16; -fx-cursor: hand;" />
+                    <Button text="🗳️ Vote on Options" onAction="#goToVoting"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 16; -fx-background-radius: 8; -fx-cursor: hand;" />
                     <Button fx:id="editPrefsBtn" text="⚙️ Edit preferences" onAction="#goToPreferences"
                             style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 10 16; -fx-cursor: hand;" />
                 </HBox>

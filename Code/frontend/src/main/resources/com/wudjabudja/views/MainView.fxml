@@ -65,7 +65,7 @@
                     maxWidth="Infinity"
                     onAction="#showDashboard" />
 
-            <Button fx:id="navTripsBtn" text="✈️  My Trips"
+            <Button fx:id="navTripsBtn" text="👥  Shared Trip"
                     maxWidth="Infinity"
                     onAction="#showTrips" />
 

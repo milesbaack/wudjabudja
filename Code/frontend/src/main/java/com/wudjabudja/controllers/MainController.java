@@ -103,6 +103,11 @@ public class MainController implements Initializable {
 
     @FXML
     public void showTrips(ActionEvent event) {
+        if (!AppSession.hasTrip()) {
+            AppSession.setFlashMessage("Create a trip (or open one under \"Your trips\") to manage travelers and view shared options.");
+            showTripSetup(null);
+            return;
+        }
         setActiveButton(navTripsBtn);
         loadCenterView("/com/wudjabudja/views/TripsView.fxml");
     }
@@ -132,6 +137,11 @@ public class MainController implements Initializable {
 
     @FXML
     public void showVoting(ActionEvent event) {
+        if (!AppSession.hasTrip()) {
+            AppSession.setFlashMessage("Create a trip (or open one under \"Your trips\") before voting on activities.");
+            showTripSetup(null);
+            return;
+        }
         setActiveButton(navVotingBtn);
         loadCenterView("/com/wudjabudja/views/VotingView.fxml");
     }

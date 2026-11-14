@@ -3,58 +3,147 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.text.Font?>
 
+<!-- Shared Trip Screen (GRP-03): Shows who's on the trip, lets the creator add travelers by email
+     and pick which traveler to enter quiz answers for, and shows the group's activity options. -->
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.TripsController"
             fitToWidth="true"
             style="-fx-background: #f8fafc; -fx-background-color: transparent;">
 
     <content>
-        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
+        <VBox spacing="20.0" style="-fx-background-color: #f8fafc;">
             <padding>
                 <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
             </padding>
 
-            <HBox alignment="CENTER_LEFT">
-                <VBox spacing="4.0">
-                    <Label text="My Trips" textFill="#0f172a">
-                        <font><Font name="System Bold" size="24.0" /></font>
-                    </Label>
-                    <Label text="View your upcoming trips or join a friend's group adventure." textFill="#64748b">
-                        <font><Font size="14.0" /></font>
-                    </Label>
-                </VBox>
-                <Region HBox.hgrow="ALWAYS" />
-                <HBox spacing="10.0">
-                    <Button text="Join with Code"
-                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 6; -fx-padding: 8 16; -fx-font-weight: bold; -fx-cursor: hand;" />
-                    <Button text="+ Create Trip"
-                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-padding: 8 16; -fx-font-weight: bold; -fx-background-radius: 6; -fx-cursor: hand;" />
-                </HBox>
-            </HBox>
-
-            <!-- Trip Card -->
-            <VBox spacing="12.0"
-                  style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 20;">
+            <!-- 1. Trip Header Card -->
+            <VBox spacing="10.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
                 <HBox alignment="CENTER_LEFT" spacing="10.0">
-                    <Label text="Active Trip" style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-padding: 2 8; -fx-background-radius: 12;">
+                    <Label text="👥 SHARED TRIP"
+                           style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 12;">
+                        <font><Font size="11.0" /></font>
+                    </Label>
+                    <Label fx:id="joinCodeBadge" text=""
+                           style="-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-family: monospace; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 8;">
                         <font><Font size="11.0" /></font>
                     </Label>
                     <Region HBox.hgrow="ALWAYS" />
-                    <Label text="Code: WUDJA-TOKYO" style="-fx-font-family: monospace;" textFill="#64748b" />
+                    <Button text="🧭 Switch / New Trip" onAction="#goToTripSetup"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 6 14; -fx-cursor: hand;" />
                 </HBox>
-                <Label text="🇯🇵 Tokyo &amp; Kyoto Autumn Explorer" textFill="#0f172a">
-                    <font><Font name="System Bold" size="18.0" /></font>
+
+                <Label fx:id="tripTitleLabel" text="Shared Group Trip" textFill="#0f172a" wrapText="true">
+                    <font><Font name="System Bold" size="22.0" /></font>
                 </Label>
-                <Label text="Nov 14 – Nov 22, 2026 • 4 Travelers • Tokyo, Japan" textFill="#64748b">
+                <Label fx:id="tripDetailsLabel" text="" textFill="#64748b" wrapText="true">
+                    <font><Font size="13.0" /></font>
+                </Label>
+
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <padding><Insets top="4.0" /></padding>
+                    <Button fx:id="generateBtn" text="✨ Generate Group Options" onAction="#handleGenerateOptions"
+                            style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 20; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <Button text="🗳️ Go to Group Voting" onAction="#goToVoting"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 10 18; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <Button text="🗺️ Full Itinerary View" onAction="#goToItinerary"
+                            style="-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 10 16; -fx-cursor: hand;" />
+                </HBox>
+
+                <HBox fx:id="busyBox" alignment="CENTER_LEFT" spacing="12.0" visible="false" managed="false"
+                      style="-fx-background-color: #f0f9ff; -fx-background-radius: 8; -fx-padding: 12 14;">
+                    <ProgressIndicator prefWidth="26.0" prefHeight="26.0" />
+                    <Label fx:id="busyLabel" text="" textFill="#0369a1" wrapText="true">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                </HBox>
+
+                <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity" visible="false" managed="false">
                     <font><Font size="13.0" /></font>
                 </Label>
             </VBox>
+
+            <!-- 2. Group Travelers Roster + Add Traveler by Email (GRP-03) -->
+            <VBox spacing="14.0"
+                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <VBox spacing="2.0">
+                        <Label text="🧳 Travelers on This Trip" textFill="#0f172a">
+                            <font><Font name="System Bold" size="18.0" /></font>
+                        </Label>
+                        <Label fx:id="travelersSummaryLabel"
+                               text="Add travelers by email below, then click &quot;Take / Edit Quiz&quot; next to any traveler to enter their preferences."
+                               textFill="#64748b" wrapText="true">
+                            <font><Font size="13.0" /></font>
+                        </Label>
+                    </VBox>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Button text="↻ Refresh" onAction="#handleRefresh"
+                            style="-fx-background-color: #f8fafc; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
+                </HBox>
+
+                <!-- Add Traveler Form -->
+                <HBox spacing="10.0" alignment="CENTER_LEFT"
+                      style="-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 14;">
+                    <Label text="Add traveler:" textFill="#334155">
+                        <font><Font name="System Bold" size="13.0" /></font>
+                    </Label>
+                    <TextField fx:id="travelerEmailField"
+                               promptText="Traveler email (e.g. alex@example.com)"
+                               onAction="#handleAddTraveler"
+                               HBox.hgrow="ALWAYS"
+                               style="-fx-background-radius: 8; -fx-border-radius: 8; -fx-padding: 8 12; -fx-font-size: 13px;" />
+                    <Button fx:id="addTravelerBtn" text="+ Add Traveler" onAction="#handleAddTraveler"
+                            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 9 18; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <ProgressIndicator fx:id="addTravelerSpinner" prefWidth="22.0" prefHeight="22.0" visible="false" managed="false" />
+                </HBox>
+
+                <Label fx:id="travelerStatusLabel" text="" wrapText="true" maxWidth="Infinity" visible="false" managed="false">
+                    <font><Font size="13.0" /></font>
+                </Label>
+
+                <!-- Dynamic list of participants -->
+                <VBox fx:id="participantsListBox" spacing="10.0" />
+            </VBox>
+
+            <!-- 3. Group Activity Options Section (GRP-03) -->
+            <VBox spacing="14.0">
+                <HBox alignment="CENTER_LEFT" spacing="12.0">
+                    <Label text="🗺️ Group Activity Options" textFill="#0f172a">
+                        <font><Font name="System Bold" size="18.0" /></font>
+                    </Label>
+                    <Region HBox.hgrow="ALWAYS" />
+                    <Label fx:id="generatedAtLabel" text="" textFill="#64748b">
+                        <font><Font size="12.0" /></font>
+                    </Label>
+                </HBox>
+
+                <!-- Empty state when no group options exist yet -->
+                <VBox fx:id="emptyOptionsBox" spacing="8.0" alignment="CENTER" visible="false" managed="false"
+                      style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-style: segments(6, 4); -fx-border-radius: 12; -fx-padding: 32;">
+                    <Label text="🧭" style="-fx-font-size: 32px;" />
+                    <Label text="No group options generated yet" textFill="#0f172a">
+                        <font><Font name="System Bold" size="16.0" /></font>
+                    </Label>
+                    <Label text="Once your travelers have saved their quiz preferences above, click &quot;Generate Group Options&quot; so Gemini can plan activities for everyone (including subgroup splits when interests conflict)."
+                           textFill="#64748b" wrapText="true" maxWidth="560.0" style="-fx-text-alignment: center;">
+                        <font><Font size="13.0" /></font>
+                    </Label>
+                </VBox>
+
+                <!-- Day cards populated by TripsController -->
+                <VBox fx:id="daysBox" spacing="18.0" />
+            </VBox>
+
         </VBox>
     </content>
 </ScrollPane>

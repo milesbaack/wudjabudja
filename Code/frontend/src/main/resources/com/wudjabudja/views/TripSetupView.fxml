@@ -51,6 +51,8 @@
                     <font><Font name="System Bold" size="13.0" /></font>
                 </Label>
                 <Region HBox.hgrow="ALWAYS" />
+                <Button text="Travelers →" onAction="#goToSharedTrip"
+                        style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
                 <Button text="Quiz →" onAction="#goToQuiz"
                         style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
                 <Button text="Itinerary →" onAction="#goToItinerary"
@@ -130,6 +132,8 @@
                 <HBox alignment="CENTER_LEFT" spacing="12.0">
                     <Button fx:id="createTripBtn" text="Create Trip &amp; Start Quiz →" onAction="#handleCreateTrip"
                             style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
+                    <Button text="🧪 Load Demo Group Trip" onAction="#handleLoadDemoTrip"
+                            style="-fx-background-color: #eff6ff; -fx-border-color: #93c5fd; -fx-border-radius: 8; -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-padding: 10 16; -fx-background-radius: 8; -fx-cursor: hand;" />
                     <ProgressIndicator fx:id="createSpinner" prefWidth="24.0" prefHeight="24.0" visible="false" />
                 </HBox>
 
