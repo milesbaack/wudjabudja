@@ -89,13 +89,14 @@
 
 ---
 
-## Sprint 3: Group Trips & Voting
+## Sprint 3: Group Trips & Voting (Done)
 
 * **Dates:** Nov 10 to Nov 23, 2026
 * **Sprint Goal:** Group trips and voting. Move from one traveler to a whole group.
-* **Total Points:** 23 pts
+* **What shipped:** Full multi-traveler group flow running locally on one laptop against Spring Boot + local PostgreSQL: add travelers by email, save distinct preferences per traveler, generate group-aware Gemini options with subgroup splits and automatic 503/429 retry, cast ranked-choice ballots per traveler with duplicate/non-member validation, and display Borda Count winners with lowest-cost tie-breaking (`is_final = true`). Also delivered ahead of schedule: the unified **Compass UI redesign** (`docs/UI_DESIGN_LANGUAGE.md`) and the live **Trip Briefing** module (`POST`/`GET /api/trips/{id}/briefing`).
+* **Total Points:** 23 pts (Cumulative Sprints 1–3: 58 pts; rolling velocity: 19.3 pts/sprint)
 * **Testing approach:** One login on one laptop. The trip creator adds travelers by email and enters each person's quiz answers and votes to simulate the group.
-* **Storage:** Build against the current backend (Spring Boot + local Postgres). The JSON storage swap is tracked in LOCAL-01.
+* **Storage:** Built against the current backend (Spring Boot + local Postgres). The JSON storage branch (`Local-JSON-Database-Facade`) is tracked in `LOCAL-01`.
 * **Deferred:** Login/auth, Postgres cloud sync, travel mode (car/plane/train).
 
 ### Sprint 3 Point Distribution
@@ -106,17 +107,17 @@
 
 ### Sprint 3 Task Breakdown
 
-| ID | Task | Assignee | Priority | Pts | Acceptance Criteria / Technical Details |
-| :--- | :--- | :--- | :---: | :---: | :--- |
-| **GRP-01** | Group-Aware Gemini Prompt | Ethan | P0 | 3 | Trip context includes every traveler on the trip and their preferences. One Gemini request plans for 2+ travelers with conflicting interests and budgets, splitting into subgroups when needed. Every traveler is in exactly one subgroup per time block and the existing output checks pass. Tested with at least 2 travelers whose interests conflict. |
-| **MVP-12** | Gemini Auto-Retry | Ethan | P1 | 2 | Temporary Gemini errors (like 503 "high demand") retry automatically with a short wait, up to 3 tries, before the user sees an error. Failed output checks still show the error and Regenerate (no auto-retry). Tests cover retry-then-success and giving up after the last try. |
-| **GRP-02** | Add Travelers API | George | P0 | 3 | `POST /api/trips/{id}/participants` with an email adds that traveler to `trip_participants` as a `member`, creating the `users` row if the email is new. Adding the same email twice returns a clear error. `GET /api/trips/{id}/participants` lists travelers with their role and whether their quiz is saved. |
-| **GRP-03** | Shared Trip Screen | Miles | P0 | 3 | Shows who's on the trip and the group's options. The trip creator adds travelers by email and picks which traveler they're entering quiz answers for. |
-| **VOTE-01** | Voting Screen | Miles | P0 | 3 | Rank 1, 2, 3 for each time block. The trip creator picks which traveler is voting. Shows the winners once votes are in. |
-| **VOTE-02** | Submit Votes API | George | P0 | 3 | `POST /api/trips/{id}/votes` takes one traveler's rankings. A matching GET returns each time block's winners. Errors come back as JSON with a `message`. |
-| **VOTE-03** | Save Votes & Block Duplicates | Lukas | P0 | 2 | Saves rankings to `votes`. A traveler can't rank the same option twice or give two options the same rank in one time block. Rejects voters who aren't on the trip. |
-| **VOTE-04** | Borda Tally & Tie-Breaker | Lukas | P0 | 3 | Borda Count per time block: 1st = 3 pts, 2nd = 2, 3rd = 1. The highest total wins, so the group gets the least-unfavorable option. Ties go to the cheaper option (lowest `estimated_cost_usd`). Sets `is_final = true` on winners. |
-| **LOCAL-01** | Push JSON Storage Code | Lukas | P1 | 1 | Carryover from Sprint 2. Push the real JSON storage code to its own branch for review, building on `com.wudjabudja.storage`. The app keeps using the current backend this sprint. |
+| ID | Task | Assignee | Priority | Pts | Status | Acceptance Criteria / What Shipped |
+| :--- | :--- | :--- | :---: | :---: | :---: | :--- |
+| **GRP-01** | Group-Aware Gemini Prompt | Ethan | P0 | 3 | Done | `TripContextService` includes every traveler on the trip and their preferences (`TripContextServiceTest`). One Gemini request plans for 2+ travelers with conflicting interests and budgets, splitting into subgroups when needed so every traveler is in exactly one subgroup per time block. |
+| **MVP-12** | Gemini Auto-Retry | Ethan | P1 | 2 | Done | `GeminiService` retries temporary Gemini errors (`429`, `500`, `502`, `503`, `504`) up to 3 tries with a short wait before surfacing an error. Failed output checks do not auto-retry (`GeminiServiceTest`). |
+| **GRP-02** | Add Travelers API | George | P0 | 3 | Done | `POST /api/trips/{id}/participants` adds a traveler by email as `member`, creating the `users` row if new and rejecting duplicates with a clear JSON error. `GET /api/trips/{id}/participants` lists travelers with `role` and `quiz_saved` (`ParticipantServiceTest`, `Sprint3ControllerTest`). |
+| **GRP-03** | Shared Trip Screen | Miles | P0 | 3 | Done | `TripsController` + `TripsView.fxml` show who is on the trip, add travelers by email, switch active traveler to fill out quiz answers, and display the group's options. |
+| **VOTE-01** | Voting Screen | Miles | P0 | 3 | Done | `VotingController` + `VotingView.fxml` rank 1, 2, 3 for each time block, pick which traveler is voting, and display the consensus winners banner once votes are in. |
+| **VOTE-02** | Submit Votes API | George | P0 | 3 | Done | `POST /api/trips/{id}/votes` accepts one traveler's rankings and returns updated winners. `GET /api/trips/{id}/votes` returns each time block's winners. Errors return JSON with a `message` (`Sprint3ControllerTest`). |
+| **VOTE-03** | Save Votes & Block Duplicates | Lukas | P0 | 2 | Done | `VoteService` saves rankings to `votes`, blocks duplicate options or duplicate ranks within a time block, and rejects voters who aren't on the trip (`VoteServiceTest`). |
+| **VOTE-04** | Borda Tally & Tie-Breaker | Lukas | P0 | 3 | Done | `VoteService` tallies Borda Count (`1st = 3`, `2nd = 2`, `3rd = 1`) per time block, breaks ties by lowest `estimated_cost_usd`, and sets `is_final = true` on winners (`VoteServiceTest`, `Sprint3GroupFlowDbTest`). |
+| **LOCAL-01** | Push JSON Storage Code | Lukas | P1 | 1 | Done | Carryover from Sprint 2. Pushed to `Local-JSON-Database-Facade` branch for review while the app stays on Spring Boot + local PostgreSQL for Sprint 3. |
 
 ### Sprint 3 Checkpoints
 * **Nov 23:** **Demo: a group trip on one laptop.** The creator adds travelers by email, enters everyone's quiz and votes, and every traveler sees the same winners.
