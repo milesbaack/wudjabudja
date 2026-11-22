@@ -13,6 +13,8 @@ import com.wudjabudja.services.ParticipantService;
 import com.wudjabudja.services.TripService;
 import com.wudjabudja.services.VoteService;
 import com.wudjabudja.session.AppSession;
+import com.wudjabudja.ui.Icons;
+import com.wudjabudja.ui.UiTheme;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -48,10 +50,8 @@ import java.util.stream.Collectors;
 
 /**
  * Controller for the Group Voting Screen (VOTE-01).
- * - Trip creator picks which traveler is voting from the dropdown.
- * - Traveler ranks options 1st (3 pts), 2nd (2 pts), 3rd (1 pt) in each time block.
- * - Prevents duplicate ranks in the same time block.
- * - Submits votes via POST /api/trips/{id}/votes (VOTE-02) and displays Borda Count winners.
+ * Handles traveler ballot switching, unique 1st/2nd/3rd Borda ranking per time block,
+ * vote submission, and Borda Count winners display.
  */
 public class VotingController implements Initializable {
 
@@ -60,29 +60,20 @@ public class VotingController implements Initializable {
     private static final DateTimeFormatter TWELVE_HOUR = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     private static final Map<String, String> BLOCK_TITLES = Map.of(
-            "morning", "🌅  Morning",
-            "afternoon", "☀️  Afternoon",
-            "evening", "🌙  Evening"
+            "morning", "Morning",
+            "afternoon", "Afternoon",
+            "evening", "Evening"
     );
 
-    private static final Map<String, String[]> CATEGORY_COLORS = Map.of(
-            "food", new String[]{"#fef3c7", "#92400e"},
-            "outdoors", new String[]{"#dcfce7", "#166534"},
-            "culture", new String[]{"#ede9fe", "#5b21b6"},
-            "nightlife", new String[]{"#e0e7ff", "#3730a3"},
-            "sports", new String[]{"#fee2e2", "#991b1b"},
-            "shopping", new String[]{"#fce7f3", "#9d174d"},
-            "relaxation", new String[]{"#e0f2fe", "#075985"},
-            "tour", new String[]{"#f1f5f9", "#334155"}
-    );
-
-    private static final String DAY_CARD_STYLE =
-            "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; " +
-            "-fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);";
-
-    // Remembers each traveler's rankings in memory across screen switches:
-    // tripId -> (userId -> (optionId -> rank 1..3))
     private static final Map<Long, Map<Long, Map<Long, Integer>>> SESSION_BALLOTS = new HashMap<>();
+
+    public static void clearVoterBallot(Long tripId, Long userId) {
+        if (tripId == null || userId == null) return;
+        Map<Long, Map<Long, Integer>> tripBallots = SESSION_BALLOTS.get(tripId);
+        if (tripBallots != null) {
+            tripBallots.remove(userId);
+        }
+    }
 
     @FXML private Label tripTitleLabel;
     @FXML private Label tripDetailsLabel;
@@ -91,6 +82,7 @@ public class VotingController implements Initializable {
     @FXML private Button autoRankBtn;
     @FXML private Button clearRanksBtn;
     @FXML private Button submitVotesBtn;
+    @FXML private Button refreshWinnersBtn;
     @FXML private HBox busyBox;
     @FXML private Label busyLabel;
     @FXML private Label statusLabel;
@@ -115,14 +107,19 @@ public class VotingController implements Initializable {
     private final Set<Long> winningOptionIds = new HashSet<>();
     private final Map<Long, Integer> winningOptionPoints = new HashMap<>();
 
-    // Current voter's selections: optionId -> rank (1, 2, or 3)
     private final Map<Long, Integer> currentRanks = new LinkedHashMap<>();
-    // Grouping of optionIds by subgroup block key so we can enforce unique ranks 1, 2, 3 per block
     private final Map<String, List<Itinerary.Option>> blockOptionsByKey = new LinkedHashMap<>();
     private boolean updatingVoterCombo = false;
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (submitVotesBtn != null) {
+            submitVotesBtn.setGraphic(Icons.create(Icons.CHECK, 15, "#FFFFFF"));
+        }
+        if (refreshWinnersBtn != null) {
+            refreshWinnersBtn.setGraphic(Icons.create(Icons.REFRESH, 13, "#334155"));
+        }
+
         trip = AppSession.getCurrentTrip();
         if (trip == null) {
             showStatus("No trip selected. Use \"Plan a Trip\" to create or open one first.", true);
@@ -164,6 +161,7 @@ public class VotingController implements Initializable {
             if (bundle.tripResult().success() && bundle.tripResult().data() != null) {
                 trip = bundle.tripResult().data();
                 AppSession.setCurrentTrip(trip);
+                NavigationManager.getInstance().refreshSidebar();
                 showTripHeader(trip);
             }
 
@@ -200,13 +198,13 @@ public class VotingController implements Initializable {
                 this.itinerary = null;
                 showEmptyState();
             } else if (itRes != null) {
-                showStatus("✗ " + itRes.message(), true);
+                showStatus(itRes.message(), true);
             }
         });
 
         task.setOnFailed(e -> {
             setBusy(false, null);
-            showStatus("✗ Failed to load voting data: " + task.getException().getMessage(), true);
+            showStatus("Failed to load voting data: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "voting-load");
@@ -237,21 +235,19 @@ public class VotingController implements Initializable {
         renderVotingBlocks();
     }
 
-    // ---------- Ranking Logic (1st = 3 pts, 2nd = 2 pts, 3rd = 1 pt) ----------
+    // ---------- Ranking Logic ----------
 
     private void assignRank(String blockKey, Itinerary.Option targetOption, int newRank) {
         if (targetOption.id() == null) {
-            showStatus("✗ Option is missing a database ID. Regenerate the itinerary first.", true);
+            showStatus("Option is missing a database ID. Regenerate the itinerary first.", true);
             return;
         }
         List<Itinerary.Option> siblingOptions = blockOptionsByKey.getOrDefault(blockKey, List.of());
         Integer previousRankOnTarget = currentRanks.get(targetOption.id());
 
-        // Clicking the already-selected rank toggles it off
         if (previousRankOnTarget != null && previousRankOnTarget == newRank) {
             currentRanks.remove(targetOption.id());
         } else {
-            // If another option in this same time block already has 'newRank', either swap or clear it
             for (Itinerary.Option sibling : siblingOptions) {
                 if (sibling.id() == null || sibling.id().equals(targetOption.id())) continue;
                 Integer sibRank = currentRanks.get(sibling.id());
@@ -279,7 +275,6 @@ public class VotingController implements Initializable {
                     .allMatch(o -> o.id() != null && currentRanks.containsKey(o.id()));
             if (fullyRanked) continue;
 
-            // Clear partial ranks in this block and rank 1st, 2nd, 3rd (cheapest first for deterministic demoing)
             for (Itinerary.Option o : opts) {
                 if (o.id() != null) currentRanks.remove(o.id());
             }
@@ -295,8 +290,8 @@ public class VotingController implements Initializable {
         }
         saveBallotToSession();
         renderVotingBlocks();
-        showStatus("✓ Auto-ranked all time blocks (1st, 2nd, 3rd) for " + AppSession.getActiveTraveler().shortName()
-                + ". Click \"Submit Votes\" when ready!", false);
+        showStatus("Auto-ranked all time blocks (1st, 2nd, 3rd) for " + AppSession.getActiveTraveler().shortName()
+                + ". Click \"Submit Votes\" when ready.", false);
     }
 
     @FXML
@@ -313,7 +308,6 @@ public class VotingController implements Initializable {
     public void handleSubmitVotes(ActionEvent event) {
         if (trip == null || itinerary == null) return;
 
-        // Validate that at least one block is ranked and no ranked block has incomplete/duplicate ranks
         List<String> incompleteBlocks = new ArrayList<>();
         List<VoteRanking> rankings = new ArrayList<>();
 
@@ -339,11 +333,11 @@ public class VotingController implements Initializable {
         }
 
         if (rankings.isEmpty()) {
-            showStatus("✗ Rank 1st, 2nd, and 3rd choices in at least one time block (or click \"Auto-Fill Unranked\") before submitting.", true);
+            showStatus("Rank 1st, 2nd, and 3rd choices in at least one time block (or click \"Auto-Fill Unranked\") before submitting.", true);
             return;
         }
         if (!incompleteBlocks.isEmpty()) {
-            showStatus("✗ Please finish ranking all 3 choices (1st, 2nd, and 3rd) in every time block you started: "
+            showStatus("Please finish ranking all 3 choices (1st, 2nd, and 3rd) in every time block you started: "
                     + String.join(", ", incompleteBlocks), true);
             return;
         }
@@ -375,7 +369,7 @@ public class VotingController implements Initializable {
             SubmitOutcome outcome = task.getValue();
 
             if (!outcome.submitResult().success()) {
-                showStatus("✗ " + outcome.submitResult().message(), true);
+                showStatus(outcome.submitResult().message(), true);
                 return;
             }
 
@@ -394,13 +388,13 @@ public class VotingController implements Initializable {
             syncWinningOptions();
             renderWinnersSection();
             renderVotingBlocks();
-            showStatus("✓ Votes submitted for " + voterName + "! Borda Count winners updated.", false);
+            showStatus("Votes submitted for " + voterName + ". Borda Count winners updated.", false);
         });
 
         task.setOnFailed(e -> {
             setBusy(false, null);
             submitVotesBtn.setDisable(false);
-            showStatus("✗ Failed to submit votes: " + task.getException().getMessage(), true);
+            showStatus("Failed to submit votes: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "voting-submit");
@@ -439,12 +433,12 @@ public class VotingController implements Initializable {
             syncWinningOptions();
             renderWinnersSection();
             renderVotingBlocks();
-            showStatus("✓ Winners refreshed.", false);
+            showStatus("Winners refreshed.", false);
         });
 
         task.setOnFailed(e -> {
             setBusy(false, null);
-            showStatus("✗ Couldn't refresh winners: " + task.getException().getMessage(), true);
+            showStatus("Couldn't refresh winners: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "voting-refresh-winners");
@@ -452,12 +446,6 @@ public class VotingController implements Initializable {
 
     // ---------- Winners Calculation & Rendering ----------
 
-    /**
-     * Collects winning option IDs from:
-     * 1) GET /api/trips/{id}/votes response (apiWinners)
-     * 2) Options with is_final = true in GET /api/trips/{id}/itinerary (set by Lukas's VOTE-04 tally)
-     * 3) Local session Borda tally fallback if votes were cast in this session and backend hasn't flagged winners yet.
-     */
     private void syncWinningOptions() {
         winningOptionIds.clear();
         winningOptionPoints.clear();
@@ -487,13 +475,15 @@ public class VotingController implements Initializable {
             }
         }
 
-        // Compute session Borda points so we can display point totals (and fallback winners if needed)
         if (trip != null && itinerary != null) {
             Map<Long, Map<Long, Integer>> tripBallots = SESSION_BALLOTS.getOrDefault(trip.id(), Map.of());
             if (!tripBallots.isEmpty()) {
                 Map<Long, Integer> tally = new HashMap<>();
-                for (Map<Long, Integer> userBallot : tripBallots.values()) {
-                    for (Map.Entry<Long, Integer> vote : userBallot.entrySet()) {
+                for (Map.Entry<Long, Map<Long, Integer>> voterEntry : tripBallots.entrySet()) {
+                    if (!participantById.isEmpty() && !participantById.containsKey(voterEntry.getKey())) {
+                        continue;
+                    }
+                    for (Map.Entry<Long, Integer> vote : voterEntry.getValue().entrySet()) {
                         int pts = Math.max(1, 4 - vote.getValue());
                         tally.merge(vote.getKey(), pts, Integer::sum);
                     }
@@ -501,7 +491,6 @@ public class VotingController implements Initializable {
                 tally.forEach(winningOptionPoints::putIfAbsent);
 
                 if (winningOptionIds.isEmpty()) {
-                    // Fallback Borda winner per subgroup block: highest points, tie-broken by lowest estimated_cost_usd
                     for (Itinerary.Day day : orEmpty(itinerary.days())) {
                         for (Itinerary.Block block : orEmpty(day.blocks())) {
                             for (Itinerary.Subgroup sub : orEmpty(block.subgroups())) {
@@ -557,7 +546,6 @@ public class VotingController implements Initializable {
             }
         }
 
-        // If apiWinners had entries not matched in itinerary options, render them too
         if (winnersListBox.getChildren().isEmpty() && apiWinners != null) {
             for (VoteWinner w : apiWinners) {
                 winnersListBox.getChildren().add(winnerFallbackRow(w));
@@ -568,15 +556,15 @@ public class VotingController implements Initializable {
     private HBox winnerSummaryRow(String isoDate, String timeBlock, Itinerary.Subgroup sub, Itinerary.Option opt) {
         String dayBlock = shortDate(isoDate) + " · " + BLOCK_TITLES.getOrDefault(timeBlock, timeBlock);
         Label blockBadge = new Label(dayBlock);
-        blockBadge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 8;");
+        blockBadge.getStyleClass().addAll("badge", "badge-amber");
         blockBadge.setMinWidth(185);
 
-        Label titleLabel = new Label("🏆 " + opt.title());
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-size: 13px;");
+        Label titleLabel = new Label(opt.title());
+        titleLabel.getStyleClass().add("item-title");
 
         String details = timeRange(opt.startTime(), opt.endTime()) + " · " + costText(opt.estimatedCostUsd());
         Label detailsLabel = new Label(details);
-        detailsLabel.setStyle("-fx-text-fill: #475569; -fx-font-size: 12px;");
+        detailsLabel.getStyleClass().add("meta-text");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -587,11 +575,11 @@ public class VotingController implements Initializable {
         Integer pts = winningOptionPoints.get(opt.id());
         if (pts != null && pts > 0) {
             Label ptsBadge = new Label(pts + (pts == 1 ? " Borda pt" : " Borda pts"));
-            ptsBadge.setStyle("-fx-background-color: #dcfce7; -fx-text-fill: #166534; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 10; -fx-background-radius: 10;");
+            ptsBadge.getStyleClass().addAll("badge", "badge-success");
             row.getChildren().add(ptsBadge);
         }
 
-        row.setStyle("-fx-background-color: white; -fx-border-color: #fde68a; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12;");
+        row.getStyleClass().add("winner-summary-row");
         return row;
     }
 
@@ -600,10 +588,10 @@ public class VotingController implements Initializable {
                 + BLOCK_TITLES.getOrDefault(w.timeBlock() == null ? "" : w.timeBlock(),
                 w.timeBlock() == null ? "Time Block" : w.timeBlock());
         Label blockBadge = new Label(dayBlock);
-        blockBadge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 8;");
+        blockBadge.getStyleClass().addAll("badge", "badge-amber");
 
-        Label titleLabel = new Label("🏆 " + (w.title() != null ? w.title() : "Option #" + w.optionId()));
-        titleLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-size: 13px;");
+        Label titleLabel = new Label(w.title() != null ? w.title() : "Option #" + w.optionId());
+        titleLabel.getStyleClass().add("item-title");
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -612,10 +600,10 @@ public class VotingController implements Initializable {
         row.setAlignment(Pos.CENTER_LEFT);
         if (w.totalPoints() != null) {
             Label ptsBadge = new Label(w.totalPoints() + " Borda pts");
-            ptsBadge.setStyle("-fx-background-color: #dcfce7; -fx-text-fill: #166534; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 10; -fx-background-radius: 10;");
+            ptsBadge.getStyleClass().addAll("badge", "badge-success");
             row.getChildren().add(ptsBadge);
         }
-        row.setStyle("-fx-background-color: white; -fx-border-color: #fde68a; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 8 12;");
+        row.getStyleClass().add("winner-summary-row");
         return row;
     }
 
@@ -645,14 +633,14 @@ public class VotingController implements Initializable {
 
     private VBox dayVotingCard(int dayNumber, Itinerary.Day day, Long voterId) {
         Label badge = new Label("DAY " + dayNumber);
-        badge.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 12;");
+        badge.getStyleClass().addAll("badge", "badge-dark");
         Label date = new Label(niceDate(day.date()));
-        date.setStyle("-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #0f172a;");
+        date.getStyleClass().add("section-title");
         HBox header = new HBox(12, badge, date);
         header.setAlignment(Pos.CENTER_LEFT);
 
         VBox card = new VBox(18, header);
-        card.setStyle(DAY_CARD_STYLE);
+        card.getStyleClass().add("card");
 
         for (Itinerary.Block block : orEmpty(day.blocks())) {
             card.getChildren().add(blockVotingSection(dayNumber, day.date(), block, voterId));
@@ -664,7 +652,6 @@ public class VotingController implements Initializable {
         VBox section = new VBox(10);
 
         List<Itinerary.Subgroup> allSubgroups = orEmpty(block.subgroups());
-        // Show the subgroup that contains the active voter (or all subgroups if none specify this voter)
         List<Itinerary.Subgroup> matching = allSubgroups.stream()
                 .filter(s -> s.subgroupParticipants() == null
                         || s.subgroupParticipants().isEmpty()
@@ -682,9 +669,8 @@ public class VotingController implements Initializable {
                     + (matching.size() > 1 ? " (Group " + (sIdx + 1) + ")" : "");
             blockOptionsByKey.put(blockKey, opts);
 
-            // Header bar for the time block + completion badge
             Label blockTitle = new Label(BLOCK_TITLES.getOrDefault(block.timeBlock(), block.timeBlock()));
-            blockTitle.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #1e293b;");
+            blockTitle.getStyleClass().add("card-title");
 
             int expected = Math.min(3, opts.size());
             long rankedCount = opts.stream()
@@ -693,11 +679,9 @@ public class VotingController implements Initializable {
             boolean complete = expected > 0 && rankedCount == expected;
 
             Label statusPill = new Label(complete
-                    ? "✓ Ranked 1st, 2nd & 3rd"
-                    : "Rank your 1st, 2nd & 3rd choice (" + rankedCount + "/" + expected + ")");
-            statusPill.setStyle(complete
-                    ? "-fx-background-color: #dcfce7; -fx-text-fill: #166534; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 10; -fx-background-radius: 10;"
-                    : "-fx-background-color: #f1f5f9; -fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 10; -fx-background-radius: 10;");
+                    ? "Ranked 1st, 2nd & 3rd"
+                    : "Rank 1st, 2nd & 3rd (" + rankedCount + "/" + expected + ")");
+            statusPill.getStyleClass().addAll("badge", complete ? "badge-success" : "badge-neutral");
 
             Region spacer = new Region();
             HBox.setHgrow(spacer, Priority.ALWAYS);
@@ -709,7 +693,7 @@ public class VotingController implements Initializable {
                 section.getChildren().add(subgroupLabel(sub));
             }
 
-            HBox optionsRow = new HBox(12);
+            HBox optionsRow = new HBox(14);
             for (int i = 0; i < opts.size(); i++) {
                 VBox optCard = votingOptionCard(blockKey, i + 1, opts.get(i));
                 HBox.setHgrow(optCard, Priority.ALWAYS);
@@ -732,9 +716,9 @@ public class VotingController implements Initializable {
                 })
                 .collect(Collectors.joining(", "));
         String reason = (sub.splitReason() == null || sub.splitReason().isBlank()) ? "" : " · " + sub.splitReason();
-        Label label = new Label("👥 Subgroup (" + who + ")" + reason);
+        Label label = new Label("Subgroup (" + who + ")" + reason);
         label.setWrapText(true);
-        label.setStyle("-fx-text-fill: #7c3aed; -fx-font-weight: bold; -fx-font-size: 12px;");
+        label.getStyleClass().addAll("badge", "badge-violet");
         return label;
     }
 
@@ -745,7 +729,8 @@ public class VotingController implements Initializable {
         HBox topRow = new HBox(6);
         topRow.setAlignment(Pos.CENTER_LEFT);
         Label pick = new Label("OPTION " + number);
-        pick.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 10px;");
+        pick.getStyleClass().add("subtle-text");
+        pick.setStyle("-fx-font-weight: bold;");
         topRow.getChildren().add(pick);
 
         Region topSpacer = new Region();
@@ -754,50 +739,58 @@ public class VotingController implements Initializable {
 
         if (isWinner) {
             Integer pts = option.id() == null ? null : winningOptionPoints.get(option.id());
-            String winText = pts != null && pts > 0 ? "🏆 WINNER (" + pts + " pts)" : "🏆 WINNER";
+            String winText = pts != null && pts > 0 ? "WINNER · " + pts + " PTS" : "WINNER";
             Label winBadge = new Label(winText);
-            winBadge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 2 8; -fx-background-radius: 8;");
+            winBadge.getStyleClass().addAll("badge", "badge-amber");
             topRow.getChildren().add(winBadge);
         }
 
-        Label title = wrapped(option.title(), "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f172a;");
-        Label time = wrapped("🕘 " + timeRange(option.startTime(), option.endTime()), "-fx-text-fill: #334155; -fx-font-size: 12px;");
+        Label title = wrapped(option.title(), "item-title");
+        HBox timeRow = new HBox(6, Icons.create(Icons.CLOCK, 13, "#64748B"),
+                wrapped(timeRange(option.startTime(), option.endTime()), "meta-text"));
+        timeRow.setAlignment(Pos.CENTER_LEFT);
 
-        VBox card = new VBox(6, topRow, title, time);
+        VBox card = new VBox(8, topRow, title, timeRow);
         if (option.neighborhood() != null && !option.neighborhood().isBlank()) {
-            card.getChildren().add(wrapped("📍 " + option.neighborhood(), "-fx-text-fill: #334155; -fx-font-size: 12px;"));
+            HBox locRow = new HBox(6, Icons.create(Icons.MAP_PIN, 13, "#64748B"),
+                    wrapped(option.neighborhood(), "meta-text"));
+            locRow.setAlignment(Pos.CENTER_LEFT);
+            card.getChildren().add(locRow);
         }
 
-        HBox chips = new HBox(6, categoryChip(option.category()), costChip(option.estimatedCostUsd()));
+        HBox chips = new HBox(6, UiTheme.categoryChip(option.category()), UiTheme.costChip(costText(option.estimatedCostUsd())));
         chips.setAlignment(Pos.CENTER_LEFT);
         card.getChildren().add(chips);
 
         if (option.description() != null && !option.description().isBlank()) {
-            card.getChildren().add(wrapped(option.description(), "-fx-text-fill: #475569; -fx-font-size: 12px;"));
+            card.getChildren().add(wrapped(option.description(), "body-text"));
         }
 
         Region pushDown = new Region();
         VBox.setVgrow(pushDown, Priority.ALWAYS);
         card.getChildren().add(pushDown);
 
-        // Rank 1, 2, 3 Buttons
+        Region divider = new Region();
+        divider.getStyleClass().add("divider");
+        card.getChildren().add(divider);
+
         HBox rankBar = new HBox(6);
         rankBar.setAlignment(Pos.CENTER);
         rankBar.getChildren().addAll(
-                rankButton(blockKey, option, 1, "🥇 1st (3pt)", selectedRank != null && selectedRank == 1),
-                rankButton(blockKey, option, 2, "🥈 2nd (2pt)", selectedRank != null && selectedRank == 2),
-                rankButton(blockKey, option, 3, "🥉 3rd (1pt)", selectedRank != null && selectedRank == 3)
+                rankButton(blockKey, option, 1, "1st · 3pt", selectedRank != null && selectedRank == 1),
+                rankButton(blockKey, option, 2, "2nd · 2pt", selectedRank != null && selectedRank == 2),
+                rankButton(blockKey, option, 3, "3rd · 1pt", selectedRank != null && selectedRank == 3)
         );
         card.getChildren().add(rankBar);
 
         if (isWinner) {
-            card.setStyle("-fx-background-color: #fffbeb; -fx-border-color: #f59e0b; -fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+            card.getStyleClass().add("option-card-winner");
         } else if (selectedRank != null && selectedRank == 1) {
-            card.setStyle("-fx-background-color: #eff6ff; -fx-border-color: #2563eb; -fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+            card.getStyleClass().add("option-card-rank1");
         } else if (selectedRank != null) {
-            card.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #93c5fd; -fx-border-width: 1.5; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+            card.getStyleClass().add("option-card-ranked");
         } else {
-            card.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+            card.getStyleClass().add("option-card");
         }
         return card;
     }
@@ -807,15 +800,16 @@ public class VotingController implements Initializable {
         HBox.setHgrow(btn, Priority.ALWAYS);
         btn.setMaxWidth(Double.MAX_VALUE);
 
-        String activeColors = switch (rank) {
-            case 1 -> "-fx-background-color: #2563eb; -fx-text-fill: white; -fx-border-color: #1d4ed8;";
-            case 2 -> "-fx-background-color: #0284c7; -fx-text-fill: white; -fx-border-color: #0369a1;";
-            default -> "-fx-background-color: #475569; -fx-text-fill: white; -fx-border-color: #334155;";
-        };
-        String inactiveColors = "-fx-background-color: white; -fx-text-fill: #334155; -fx-border-color: #cbd5e1;";
+        if (active) {
+            btn.getStyleClass().add(switch (rank) {
+                case 1 -> "rank-btn-1";
+                case 2 -> "rank-btn-2";
+                default -> "rank-btn-3";
+            });
+        } else {
+            btn.getStyleClass().add("rank-btn");
+        }
 
-        btn.setStyle((active ? activeColors : inactiveColors)
-                + " -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 6 6; -fx-background-radius: 6; -fx-border-radius: 6; -fx-cursor: hand;");
         btn.setOnAction(e -> assignRank(blockKey, option, rank));
         return btn;
     }
@@ -830,7 +824,8 @@ public class VotingController implements Initializable {
                 completedBlocks++;
             }
         }
-        progressLabel.setText(completedBlocks + " of " + totalBlocks + " time blocks ranked");
+        progressLabel.setText(completedBlocks + " of " + totalBlocks + " blocks ranked");
+        UiTheme.setBadgeVariant(progressLabel, (totalBlocks > 0 && completedBlocks == totalBlocks) ? "badge-success" : "badge-neutral");
     }
 
     // ---------- Session Ballot Persistence ----------
@@ -856,11 +851,11 @@ public class VotingController implements Initializable {
     // ---------- UI & Navigation Helpers ----------
 
     private void showTripHeader(Trip t) {
-        tripTitleLabel.setText("Vote on Options: " + t.title());
-        tripDetailsLabel.setText("📍 " + t.destination()
-                + "   📅 " + t.dateRangeText()
-                + "   🧳 " + TripType.labelFor(t.tripType())
-                + "   💰 " + money(t.totalBudget()) + " total budget");
+        tripTitleLabel.setText("Vote on Options — " + t.title());
+        tripDetailsLabel.setText(t.destination()
+                + "  ·  " + t.dateRangeText()
+                + "  ·  " + TripType.labelFor(t.tripType())
+                + "  ·  " + money(t.totalBudget()) + " total budget");
     }
 
     private void showEmptyState() {
@@ -890,31 +885,16 @@ public class VotingController implements Initializable {
         NavigationManager.getInstance().navigateTo("itinerary");
     }
 
-    private Label categoryChip(String category) {
-        String name = category == null || category.isBlank() ? "other" : category;
-        String[] colors = CATEGORY_COLORS.getOrDefault(name, new String[]{"#f1f5f9", "#334155"});
-        Label chip = new Label(capitalize(name));
-        chip.setStyle("-fx-background-color: " + colors[0] + "; -fx-text-fill: " + colors[1]
-                + "; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8; -fx-background-radius: 10;");
-        return chip;
-    }
-
-    private Label costChip(BigDecimal cost) {
-        Label chip = new Label(costText(cost));
-        chip.setStyle("-fx-background-color: #ecfdf5; -fx-text-fill: #047857; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8; -fx-background-radius: 10;");
-        return chip;
-    }
-
     private static String costText(BigDecimal cost) {
         if (cost == null) return "Cost unknown";
         if (cost.signum() == 0) return "Free";
         return money(cost) + " / person";
     }
 
-    private static Label wrapped(String text, String style) {
+    private static Label wrapped(String text, String styleClass) {
         Label label = new Label(text == null ? "" : text);
         label.setWrapText(true);
-        label.setStyle(style);
+        label.getStyleClass().add(styleClass);
         return label;
     }
 
@@ -929,7 +909,7 @@ public class VotingController implements Initializable {
         if (from == null && to == null) return "Time to be decided";
         if (to == null) return "Starts " + from;
         if (from == null) return "Until " + to;
-        return from + " to " + to;
+        return from + " – " + to;
     }
 
     private static String twelveHour(String hhmm) {
@@ -977,18 +957,11 @@ public class VotingController implements Initializable {
     }
 
     private void showStatus(String message, boolean isError) {
-        statusLabel.setText(message);
-        statusLabel.setVisible(true);
-        statusLabel.setManaged(true);
-        statusLabel.setStyle(isError
-                ? "-fx-text-fill: #dc2626; -fx-font-weight: bold;"
-                : "-fx-text-fill: #059669; -fx-font-weight: bold;");
+        UiTheme.showStatus(statusLabel, message, isError);
     }
 
     private void clearStatus() {
-        statusLabel.setText("");
-        statusLabel.setVisible(false);
-        statusLabel.setManaged(false);
+        UiTheme.clearStatus(statusLabel);
     }
 
     private static void startInBackground(Task<?> task, String name) {

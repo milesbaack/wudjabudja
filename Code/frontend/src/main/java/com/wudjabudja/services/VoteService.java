@@ -44,10 +44,6 @@ public class VoteService {
         if (raw.success()) {
             return ApiResult.ok(raw.status(), parseWinnerList(raw.data()));
         }
-        // Allow local testing when George's POST /api/trips/{id}/votes route isn't running yet
-        if (raw.isNotFound() || raw.status() == 0) {
-            return ApiResult.ok(200, List.of());
-        }
         return ApiResult.fail(raw.status(), raw.message());
     }
 
@@ -63,7 +59,7 @@ public class VoteService {
         if (raw.success()) {
             return ApiResult.ok(raw.status(), parseWinnerList(raw.data()));
         }
-        if (raw.isNotFound() || raw.status() == 0) {
+        if (raw.isNotFound()) {
             return ApiResult.ok(200, List.of());
         }
         return ApiResult.fail(raw.status(), raw.message());

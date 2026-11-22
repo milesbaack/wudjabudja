@@ -24,7 +24,7 @@ public record Participant(
     }
 
     /**
-     * Short readable label for chips and subgroup headers (e.g. "Demo Traveler" or "alex@example.com").
+     * Short readable label for chips and subgroup headers (e.g. "Miles Baack" or "alex@example.com").
      */
     public String shortName() {
         if (fullName != null && !fullName.isBlank()) {
@@ -52,7 +52,7 @@ public record Participant(
             base = "Traveler #" + (userId != null ? userId : "?");
         }
         String roleTag = isLeader() ? " · Leader" : "";
-        String quizTag = quizSaved ? " · ✓ Quiz saved" : " · Quiz pending";
+        String quizTag = quizSaved ? " · Quiz saved" : " · Quiz pending";
         return base + roleTag + quizTag;
     }
 

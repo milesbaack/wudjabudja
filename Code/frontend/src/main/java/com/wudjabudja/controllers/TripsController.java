@@ -11,6 +11,8 @@ import com.wudjabudja.services.ParticipantService;
 import com.wudjabudja.services.PreferenceService;
 import com.wudjabudja.services.TripService;
 import com.wudjabudja.session.AppSession;
+import com.wudjabudja.ui.Icons;
+import com.wudjabudja.ui.UiTheme;
 import javafx.animation.KeyFrame;
 import javafx.animation.Timeline;
 import javafx.concurrent.Task;
@@ -25,6 +27,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 
@@ -48,10 +51,8 @@ import java.util.stream.Collectors;
 
 /**
  * Controller for the Shared Trip Screen (GRP-03).
- * - Displays all travelers on the trip (with role + whether their quiz is saved).
- * - Allows the trip creator to add travelers by email (POST /api/trips/{id}/participants).
- * - Allows picking which traveler to enter/edit quiz answers for (navigates to PreferenceView).
- * - Displays the group's generated activity options (including subgroup splits and Borda winners).
+ * Displays all travelers on the trip, allows adding/removing travelers,
+ * switches active traveler for quiz/voting, and displays generated group activity options.
  */
 public class TripsController implements Initializable {
 
@@ -60,30 +61,16 @@ public class TripsController implements Initializable {
     private static final DateTimeFormatter TWELVE_HOUR = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     private static final Map<String, String> BLOCK_TITLES = Map.of(
-            "morning", "🌅  Morning",
-            "afternoon", "☀️  Afternoon",
-            "evening", "🌙  Evening"
+            "morning", "Morning",
+            "afternoon", "Afternoon",
+            "evening", "Evening"
     );
-
-    private static final Map<String, String[]> CATEGORY_COLORS = Map.of(
-            "food", new String[]{"#fef3c7", "#92400e"},
-            "outdoors", new String[]{"#dcfce7", "#166534"},
-            "culture", new String[]{"#ede9fe", "#5b21b6"},
-            "nightlife", new String[]{"#e0e7ff", "#3730a3"},
-            "sports", new String[]{"#fee2e2", "#991b1b"},
-            "shopping", new String[]{"#fce7f3", "#9d174d"},
-            "relaxation", new String[]{"#e0f2fe", "#075985"},
-            "tour", new String[]{"#f1f5f9", "#334155"}
-    );
-
-    private static final String CARD_STYLE =
-            "-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; " +
-            "-fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);";
 
     @FXML private Label joinCodeBadge;
     @FXML private Label tripTitleLabel;
     @FXML private Label tripDetailsLabel;
     @FXML private Button generateBtn;
+    @FXML private Button refreshBtn;
     @FXML private HBox busyBox;
     @FXML private Label busyLabel;
     @FXML private Label statusLabel;
@@ -111,6 +98,16 @@ public class TripsController implements Initializable {
 
     @Override
     public void initialize(URL location, ResourceBundle resources) {
+        if (generateBtn != null) {
+            generateBtn.setGraphic(Icons.create(Icons.SPARKLES, 15, "#FFFFFF"));
+        }
+        if (addTravelerBtn != null) {
+            addTravelerBtn.setGraphic(Icons.create(Icons.PLUS, 15, "#FFFFFF"));
+        }
+        if (refreshBtn != null) {
+            refreshBtn.setGraphic(Icons.create(Icons.REFRESH, 13, "#334155"));
+        }
+
         trip = AppSession.getCurrentTrip();
         if (trip == null) {
             showStatus("No trip selected. Use \"Plan a Trip\" to create or open one first.", true);
@@ -121,7 +118,7 @@ public class TripsController implements Initializable {
 
         String flash = AppSession.takeFlashMessage();
         if (flash != null) {
-            showStatus(flash, false);
+            showStatus(flash, AppSession.isLastFlashError());
         }
 
         showTripHeader(trip);
@@ -150,8 +147,8 @@ public class TripsController implements Initializable {
                     PreferenceService.LoadResult prefCheck = preferenceService.loadPreferences(tripId, AppSession.USER_ID);
                     fallback = List.of(new Participant(
                             AppSession.USER_ID,
-                            AppSession.DEFAULT_EMAIL,
-                            AppSession.DEFAULT_NAME,
+                            AppSession.getLoggedInEmail(),
+                            AppSession.getLoggedInName(),
                             "leader",
                             prefCheck.isSuccess()
                     ));
@@ -168,6 +165,7 @@ public class TripsController implements Initializable {
             if (snap.tripResult().success() && snap.tripResult().data() != null) {
                 trip = snap.tripResult().data();
                 AppSession.setCurrentTrip(trip);
+                NavigationManager.getInstance().refreshSidebar();
                 showTripHeader(trip);
             }
 
@@ -177,7 +175,7 @@ public class TripsController implements Initializable {
             } else {
                 renderParticipants(snap.fallbackParticipants());
                 if (!snap.participantsResult().success() && !snap.participantsResult().isNotFound()) {
-                    showTravelerStatus("✗ Couldn't load travelers: " + snap.participantsResult().message(), true);
+                    showTravelerStatus("Couldn't load travelers: " + snap.participantsResult().message(), true);
                 }
             }
 
@@ -187,13 +185,13 @@ public class TripsController implements Initializable {
             } else if (itRes != null && itRes.isNotFound()) {
                 showEmptyOptionsState();
             } else if (itRes != null) {
-                showStatus("✗ " + itRes.message(), true);
+                showStatus(itRes.message(), true);
             }
         });
 
         task.setOnFailed(e -> {
             setBusy(false, null);
-            showStatus("✗ Failed to load shared trip data: " + task.getException().getMessage(), true);
+            showStatus("Failed to load shared trip data: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "shared-trip-load");
@@ -206,7 +204,7 @@ public class TripsController implements Initializable {
         loadSharedTripData();
     }
 
-    // ---------- Add Traveler by Email (GRP-03 -> GRP-02) ----------
+    // ---------- Add & Remove Travelers ----------
 
     @FXML
     public void handleAddTraveler(ActionEvent event) {
@@ -215,11 +213,11 @@ public class TripsController implements Initializable {
 
         String email = travelerEmailField.getText() == null ? "" : travelerEmailField.getText().trim();
         if (email.isEmpty()) {
-            showTravelerStatus("✗ Please enter a traveler's email address.", true);
+            showTravelerStatus("Please enter a traveler's email address.", true);
             return;
         }
         if (!email.contains("@") || email.startsWith("@") || email.endsWith("@") || !email.contains(".")) {
-            showTravelerStatus("✗ Please enter a valid email address (for example: alex@example.com).", true);
+            showTravelerStatus("Please enter a valid email address (for example: alex@example.com).", true);
             return;
         }
 
@@ -242,19 +240,63 @@ public class TripsController implements Initializable {
                 if (added != null && added.userId() != null) {
                     AppSession.setActiveTraveler(added);
                 }
-                showTravelerStatus("✓ Added " + email + " to the trip! Click \"Take / Edit Quiz\" next to their name to enter their preferences.", false);
+                showTravelerStatus("Added " + email + " to the trip. Click \"Take Quiz\" next to their name to enter their preferences.", false);
                 loadSharedTripData();
             } else {
-                showTravelerStatus("✗ " + result.message(), true);
+                showTravelerStatus(result.message(), true);
             }
         });
 
         task.setOnFailed(e -> {
             setAddingTraveler(false);
-            showTravelerStatus("✗ Error adding traveler: " + task.getException().getMessage(), true);
+            showTravelerStatus("Error adding traveler: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "shared-trip-add-traveler");
+    }
+
+    private void handleRemoveTraveler(Participant participant, Button removeBtn) {
+        if (trip == null || participant == null || participant.userId() == null) return;
+        clearTravelerStatus();
+
+        Long tripId = trip.id();
+        Long userId = participant.userId();
+        String name = participant.shortName();
+        removeBtn.setDisable(true);
+
+        Task<ApiResult<Void>> task = new Task<>() {
+            @Override
+            protected ApiResult<Void> call() {
+                return participantService.removeParticipant(tripId, userId);
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            ApiResult<Void> result = task.getValue();
+            if (result.success()) {
+                VotingController.clearVoterBallot(tripId, userId);
+                if (userId.equals(AppSession.getActiveUserId())) {
+                    Participant leader = currentParticipants.stream()
+                            .filter(Participant::isLeader)
+                            .findFirst()
+                            .orElse(AppSession.defaultTraveler());
+                    AppSession.setActiveTraveler(leader);
+                    PreferenceService.setCurrentPreferences(null);
+                }
+                showTravelerStatus("Removed " + name + " from the trip.", false);
+                loadSharedTripData();
+            } else {
+                removeBtn.setDisable(false);
+                showTravelerStatus(result.message(), true);
+            }
+        });
+
+        task.setOnFailed(e -> {
+            removeBtn.setDisable(false);
+            showTravelerStatus("Error removing traveler: " + task.getException().getMessage(), true);
+        });
+
+        startInBackground(task, "shared-trip-remove-traveler");
     }
 
     // ---------- Generate Group Options ----------
@@ -266,7 +308,7 @@ public class TripsController implements Initializable {
 
         clearStatus();
         Instant since = Instant.now();
-        String waitMsg = "Gemini is generating group options for all travelers on this trip...";
+        String waitMsg = "Generating group options for all travelers on this trip...";
         setBusy(true, waitMsg);
         generateBtn.setDisable(true);
 
@@ -291,9 +333,9 @@ public class TripsController implements Initializable {
             ApiResult<Itinerary> res = task.getValue();
             if (res.success() && res.data() != null) {
                 renderItinerary(res.data());
-                showStatus("✓ Group options generated! Review the options below or head to Group Voting.", false);
+                showStatus("Group options generated. Review the options below or head to Group Voting.", false);
             } else {
-                showStatus("✗ " + res.message(), true);
+                showStatus(res.message(), true);
             }
         });
 
@@ -301,7 +343,7 @@ public class TripsController implements Initializable {
             if (clock != null) clock.stop();
             setBusy(false, null);
             generateBtn.setDisable(false);
-            showStatus("✗ Something went wrong while generating options: " + task.getException().getMessage(), true);
+            showStatus("Something went wrong while generating options: " + task.getException().getMessage(), true);
         });
 
         startInBackground(task, "shared-trip-generate");
@@ -318,7 +360,6 @@ public class TripsController implements Initializable {
             }
         }
 
-        // Keep AppSession's active traveler synced with the latest participant info
         Participant active = participantById.get(AppSession.getActiveUserId());
         if (active != null) {
             AppSession.setActiveTraveler(active);
@@ -330,7 +371,7 @@ public class TripsController implements Initializable {
         int total = this.currentParticipants.size();
         travelersSummaryLabel.setText(
                 savedCount + " of " + total + (total == 1 ? " traveler has" : " travelers have")
-                + " saved their preferences quiz · Active traveler: " + AppSession.getActiveTraveler().shortName()
+                + " saved their preferences quiz  ·  Active traveler: " + AppSession.getActiveTraveler().shortName()
         );
 
         participantsListBox.getChildren().clear();
@@ -345,48 +386,43 @@ public class TripsController implements Initializable {
         String nameText = p.fullName() != null && !p.fullName().isBlank()
                 ? p.fullName().trim()
                 : (p.email() != null && !p.email().isBlank() ? p.email().trim() : "Traveler #" + p.userId());
+
+        StackPane avatar = UiTheme.travelerAvatar(nameText);
+
         Label nameLabel = new Label(nameText);
-        nameLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-size: 14px;");
+        nameLabel.getStyleClass().add("item-title");
 
         String emailSub = (p.email() != null && !p.email().isBlank() ? p.email().trim() : "")
-                + (p.userId() != null ? "  (Traveler ID: " + p.userId() + ")" : "");
+                + (p.userId() != null ? "  ·  ID #" + p.userId() : "");
         Label emailLabel = new Label(emailSub);
-        emailLabel.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
+        emailLabel.getStyleClass().add("meta-text");
 
         VBox identityBox = new VBox(2, nameLabel, emailLabel);
 
-        // Role badge
-        Label roleBadge = new Label(p.isLeader() ? "👑 LEADER" : "🧳 MEMBER");
-        roleBadge.setStyle(p.isLeader()
-                ? "-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 3 8; -fx-background-radius: 10;"
-                : "-fx-background-color: #e2e8f0; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 3 8; -fx-background-radius: 10;");
+        Label roleBadge = new Label(p.isLeader() ? "LEADER" : "MEMBER");
+        roleBadge.getStyleClass().addAll("badge", p.isLeader() ? "badge-amber" : "badge-neutral");
 
-        // Quiz status badge
-        Label quizBadge = new Label(p.quizSaved() ? "✓ Quiz Saved" : "⏳ Quiz Pending");
-        quizBadge.setStyle(p.quizSaved()
-                ? "-fx-background-color: #dcfce7; -fx-text-fill: #166534; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 10;"
-                : "-fx-background-color: #ffedd5; -fx-text-fill: #9a3412; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 10;");
+        Label quizBadge = new Label(p.quizSaved() ? "Quiz Saved" : "Quiz Pending");
+        quizBadge.getStyleClass().addAll("badge", p.quizSaved() ? "badge-success" : "badge-warning");
 
-        // Active traveler indicator
-        Label activeBadge = new Label(isActive ? "● Active" : "");
-        activeBadge.setVisible(isActive);
-        activeBadge.setManaged(isActive);
-        activeBadge.setStyle("-fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-font-size: 11px;");
+        HBox badges = new HBox(8, roleBadge, quizBadge);
+        badges.setAlignment(Pos.CENTER_LEFT);
+        if (isActive) {
+            Label activeBadge = new Label("ACTIVE");
+            activeBadge.getStyleClass().addAll("badge", "badge-teal");
+            badges.getChildren().add(activeBadge);
+        }
 
-        // Action: Take / Edit Quiz for this traveler
-        Button quizBtn = new Button(p.quizSaved() ? "⚙️ Edit Quiz" : "📝 Take Quiz");
-        quizBtn.setStyle(p.quizSaved()
-                ? "-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 14; -fx-cursor: hand;"
-                : "-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 7 14; -fx-background-radius: 8; -fx-cursor: hand;");
+        Button quizBtn = new Button(p.quizSaved() ? "Edit Quiz" : "Take Quiz");
+        quizBtn.getStyleClass().addAll(p.quizSaved() ? "btn-soft" : "btn-primary", "btn-sm");
         quizBtn.setOnAction(e -> {
             AppSession.setActiveTraveler(p);
             PreferenceService.setCurrentPreferences(null);
             NavigationManager.getInstance().navigateTo("preferences");
         });
 
-        // Action: Vote as this traveler
-        Button voteBtn = new Button("🗳️ Vote");
-        voteBtn.setStyle("-fx-background-color: white; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-text-fill: #334155; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;");
+        Button voteBtn = new Button("Vote");
+        voteBtn.getStyleClass().addAll("btn-secondary", "btn-sm");
         voteBtn.setOnAction(e -> {
             AppSession.setActiveTraveler(p);
             NavigationManager.getInstance().navigateTo("voting");
@@ -395,11 +431,15 @@ public class TripsController implements Initializable {
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
 
-        HBox row = new HBox(10, identityBox, roleBadge, quizBadge, activeBadge, spacer, quizBtn, voteBtn);
+        HBox row = new HBox(12, avatar, identityBox, badges, spacer, quizBtn, voteBtn);
+        if (!p.isLeader() && p.userId() != null) {
+            Button removeBtn = new Button("Remove");
+            removeBtn.getStyleClass().addAll("btn-danger-outline", "btn-sm");
+            removeBtn.setOnAction(e -> handleRemoveTraveler(p, removeBtn));
+            row.getChildren().add(removeBtn);
+        }
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle(isActive
-                ? "-fx-background-color: #eff6ff; -fx-border-color: #93c5fd; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 16;"
-                : "-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 16;");
+        row.getStyleClass().add(isActive ? "list-row-active" : "list-row");
         return row;
     }
 
@@ -408,24 +448,24 @@ public class TripsController implements Initializable {
     private void showTripHeader(Trip t) {
         tripTitleLabel.setText(t.title());
         joinCodeBadge.setText(t.joinCode() != null && !t.joinCode().isBlank() ? "Code: " + t.joinCode() : "Trip #" + t.id());
-        tripDetailsLabel.setText("📍 " + t.destination()
-                + "   📅 " + t.dateRangeText() + " (" + t.numDays() + (t.numDays() == 1 ? " day)" : " days)")
-                + "   🧳 " + TripType.labelFor(t.tripType())
-                + "   💰 " + money(t.totalBudget()) + " total budget");
+        tripDetailsLabel.setText(t.destination()
+                + "  ·  " + t.dateRangeText() + " (" + t.numDays() + (t.numDays() == 1 ? " day)" : " days)")
+                + "  ·  " + TripType.labelFor(t.tripType())
+                + "  ·  " + money(t.totalBudget()) + " total budget");
     }
 
     private void showEmptyOptionsState() {
         daysBox.getChildren().clear();
         emptyOptionsBox.setVisible(true);
         emptyOptionsBox.setManaged(true);
-        generateBtn.setText("✨ Generate Group Options");
+        generateBtn.setText("Generate Group Options");
         generatedAtLabel.setText("");
     }
 
     private void renderItinerary(Itinerary itinerary) {
         emptyOptionsBox.setVisible(false);
         emptyOptionsBox.setManaged(false);
-        generateBtn.setText("🔄 Regenerate Group Options");
+        generateBtn.setText("Regenerate Group Options");
         generatedAtLabel.setText(generatedText(itinerary.generatedAt()));
 
         daysBox.getChildren().clear();
@@ -437,14 +477,14 @@ public class TripsController implements Initializable {
 
     private VBox dayCard(int dayNumber, Itinerary.Day day) {
         Label badge = new Label("DAY " + dayNumber);
-        badge.setStyle("-fx-background-color: #0f172a; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 4 10; -fx-background-radius: 12;");
+        badge.getStyleClass().addAll("badge", "badge-dark");
         Label date = new Label(niceDate(day.date()));
-        date.setStyle("-fx-font-weight: bold; -fx-font-size: 18px; -fx-text-fill: #0f172a;");
+        date.getStyleClass().add("section-title");
         HBox header = new HBox(12, badge, date);
         header.setAlignment(Pos.CENTER_LEFT);
 
         VBox card = new VBox(18, header);
-        card.setStyle(CARD_STYLE);
+        card.getStyleClass().add("card");
         if (day.blocks() != null) {
             for (Itinerary.Block block : day.blocks()) {
                 card.getChildren().add(blockSection(block));
@@ -455,7 +495,7 @@ public class TripsController implements Initializable {
 
     private VBox blockSection(Itinerary.Block block) {
         Label title = new Label(BLOCK_TITLES.getOrDefault(block.timeBlock(), block.timeBlock()));
-        title.setStyle("-fx-font-weight: bold; -fx-font-size: 15px; -fx-text-fill: #1e293b;");
+        title.getStyleClass().add("card-title");
         VBox section = new VBox(10, title);
 
         List<Itinerary.Subgroup> subgroups = block.subgroups() == null ? List.of() : block.subgroups();
@@ -464,7 +504,7 @@ public class TripsController implements Initializable {
             Itinerary.Subgroup sub = subgroups.get(i);
             section.getChildren().add(subgroupLabel(i + 1, sub, split));
 
-            HBox options = new HBox(12);
+            HBox options = new HBox(14);
             List<Itinerary.Option> list = sub.options() == null ? List.of() : sub.options();
             for (int n = 0; n < list.size(); n++) {
                 VBox optionCard = optionCard(n + 1, list.get(n));
@@ -489,13 +529,15 @@ public class TripsController implements Initializable {
         if (names.isEmpty()) {
             names = "All travelers";
         }
-        String prefix = split ? "👥 Subgroup " + number + " (" + names + ")" : "👥 Travelers: " + names;
+        String prefix = split ? "Subgroup " + number + " (" + names + ")" : "Travelers: " + names;
         String reason = (sub.splitReason() == null || sub.splitReason().isBlank()) ? "" : " · " + sub.splitReason();
         Label label = new Label(prefix + reason);
         label.setWrapText(true);
-        label.setStyle(split
-                ? "-fx-text-fill: #7c3aed; -fx-font-weight: bold; -fx-font-size: 12px;"
-                : "-fx-text-fill: #475569; -fx-font-weight: bold; -fx-font-size: 12px;");
+        if (split) {
+            label.getStyleClass().addAll("badge", "badge-violet");
+        } else {
+            label.getStyleClass().add("meta-text");
+        }
         return label;
     }
 
@@ -504,63 +546,47 @@ public class TripsController implements Initializable {
         topRow.setAlignment(Pos.CENTER_LEFT);
 
         Label pick = new Label("OPTION " + number);
-        pick.setStyle("-fx-text-fill: #94a3b8; -fx-font-weight: bold; -fx-font-size: 10px;");
+        pick.getStyleClass().add("subtle-text");
+        pick.setStyle("-fx-font-weight: bold;");
         topRow.getChildren().add(pick);
 
         if (option.isFinal()) {
             Region sp = new Region();
             HBox.setHgrow(sp, Priority.ALWAYS);
-            Label winnerBadge = new Label("🏆 GROUP WINNER");
-            winnerBadge.setStyle("-fx-background-color: #fef3c7; -fx-text-fill: #92400e; -fx-font-weight: bold; -fx-font-size: 10px; -fx-padding: 2 8; -fx-background-radius: 8;");
+            Label winnerBadge = new Label("GROUP WINNER");
+            winnerBadge.getStyleClass().addAll("badge", "badge-amber");
             topRow.getChildren().addAll(sp, winnerBadge);
         }
 
-        Label title = wrapped(option.title(), "-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #0f172a;");
-        Label time = wrapped("🕘 " + timeRange(option.startTime(), option.endTime()), "-fx-text-fill: #334155; -fx-font-size: 12px;");
+        Label title = wrapped(option.title(), "item-title");
 
-        VBox card = new VBox(6, topRow, title, time);
+        HBox timeRow = new HBox(6, Icons.create(Icons.CLOCK, 13, "#64748B"), wrapped(timeRange(option.startTime(), option.endTime()), "meta-text"));
+        timeRow.setAlignment(Pos.CENTER_LEFT);
+
+        VBox card = new VBox(8, topRow, title, timeRow);
         if (option.neighborhood() != null && !option.neighborhood().isBlank()) {
-            card.getChildren().add(wrapped("📍 " + option.neighborhood(), "-fx-text-fill: #334155; -fx-font-size: 12px;"));
+            HBox locRow = new HBox(6, Icons.create(Icons.MAP_PIN, 13, "#64748B"), wrapped(option.neighborhood(), "meta-text"));
+            locRow.setAlignment(Pos.CENTER_LEFT);
+            card.getChildren().add(locRow);
         }
 
-        HBox chips = new HBox(6, categoryChip(option.category()), costChip(option.estimatedCostUsd()));
+        HBox chips = new HBox(6, UiTheme.categoryChip(option.category()), UiTheme.costChip(costText(option.estimatedCostUsd())));
         chips.setAlignment(Pos.CENTER_LEFT);
         card.getChildren().add(chips);
 
         if (option.description() != null && !option.description().isBlank()) {
-            card.getChildren().add(wrapped(option.description(), "-fx-text-fill: #475569; -fx-font-size: 12px;"));
+            card.getChildren().add(wrapped(option.description(), "body-text"));
         }
         if (option.whyItFits() != null && !option.whyItFits().isBlank()) {
             Region line = new Region();
-            line.setPrefHeight(1);
-            line.setStyle("-fx-background-color: #f1f5f9;");
-            card.getChildren().addAll(line,
-                    wrapped("💡 " + option.whyItFits(), "-fx-text-fill: #64748b; -fx-font-size: 12px; -fx-font-style: italic;"));
+            line.getStyleClass().add("divider");
+            Label why = wrapped(option.whyItFits(), "meta-text");
+            why.setStyle("-fx-font-style: italic;");
+            card.getChildren().addAll(line, why);
         }
 
-        card.setStyle(option.isFinal()
-                ? "-fx-background-color: #fffbeb; -fx-border-color: #f59e0b; -fx-border-width: 2; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;"
-                : "-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 14;");
+        card.getStyleClass().add(option.isFinal() ? "option-card-winner" : "option-card");
         return card;
-    }
-
-    private Label categoryChip(String category) {
-        String name = category == null || category.isBlank() ? "other" : category;
-        String[] colors = CATEGORY_COLORS.getOrDefault(name, new String[]{"#f1f5f9", "#334155"});
-        Label chip = new Label(name.substring(0, 1).toUpperCase() + name.substring(1));
-        chip.setStyle("-fx-background-color: " + colors[0] + "; -fx-text-fill: " + colors[1]
-                + "; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8; -fx-background-radius: 10;");
-        return chip;
-    }
-
-    private Label costChip(BigDecimal cost) {
-        String text;
-        if (cost == null) text = "Cost unknown";
-        else if (cost.signum() == 0) text = "Free";
-        else text = money(cost) + " / person";
-        Label chip = new Label(text);
-        chip.setStyle("-fx-background-color: #ecfdf5; -fx-text-fill: #047857; -fx-font-weight: bold; -fx-font-size: 11px; -fx-padding: 3 8; -fx-background-radius: 10;");
-        return chip;
     }
 
     // ---------- Navigation Actions ----------
@@ -582,11 +608,17 @@ public class TripsController implements Initializable {
 
     // ---------- Formatting & Status Helpers ----------
 
-    private static Label wrapped(String text, String style) {
+    private static Label wrapped(String text, String styleClass) {
         Label label = new Label(text == null ? "" : text);
         label.setWrapText(true);
-        label.setStyle(style);
+        label.getStyleClass().add(styleClass);
         return label;
+    }
+
+    private static String costText(BigDecimal cost) {
+        if (cost == null) return "Cost unknown";
+        if (cost.signum() == 0) return "Free";
+        return money(cost) + " / person";
     }
 
     private static String timeRange(String start, String end) {
@@ -595,7 +627,7 @@ public class TripsController implements Initializable {
         if (from == null && to == null) return "Time to be decided";
         if (to == null) return "Starts " + from;
         if (from == null) return "Until " + to;
-        return from + " to " + to;
+        return from + " – " + to;
     }
 
     private static String twelveHour(String hhmm) {
@@ -647,33 +679,19 @@ public class TripsController implements Initializable {
     }
 
     private void showStatus(String message, boolean isError) {
-        statusLabel.setText(message);
-        statusLabel.setVisible(true);
-        statusLabel.setManaged(true);
-        statusLabel.setStyle(isError
-                ? "-fx-text-fill: #dc2626; -fx-font-weight: bold;"
-                : "-fx-text-fill: #059669; -fx-font-weight: bold;");
+        UiTheme.showStatus(statusLabel, message, isError);
     }
 
     private void clearStatus() {
-        statusLabel.setText("");
-        statusLabel.setVisible(false);
-        statusLabel.setManaged(false);
+        UiTheme.clearStatus(statusLabel);
     }
 
     private void showTravelerStatus(String message, boolean isError) {
-        travelerStatusLabel.setText(message);
-        travelerStatusLabel.setVisible(true);
-        travelerStatusLabel.setManaged(true);
-        travelerStatusLabel.setStyle(isError
-                ? "-fx-text-fill: #dc2626; -fx-font-weight: bold;"
-                : "-fx-text-fill: #059669; -fx-font-weight: bold;");
+        UiTheme.showStatus(travelerStatusLabel, message, isError);
     }
 
     private void clearTravelerStatus() {
-        travelerStatusLabel.setText("");
-        travelerStatusLabel.setVisible(false);
-        travelerStatusLabel.setManaged(false);
+        UiTheme.clearStatus(travelerStatusLabel);
     }
 
     private static void startInBackground(Task<?> task, String name) {

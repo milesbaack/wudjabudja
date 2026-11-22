@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
@@ -10,150 +9,123 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<!-- Trip Setup: where a trip starts. Destination, dates, type and budget, then on to the quiz. -->
+<!-- Trip Setup: Destination, dates, trip type and budget -> POST /api/trips -> preferences quiz. -->
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
             fx:controller="com.wudjabudja.controllers.TripSetupController"
             fitToWidth="true"
-            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+            styleClass="page-scroll">
 
     <content>
-        <VBox spacing="20.0" style="-fx-background-color: #f8fafc;" maxWidth="820.0">
-            <padding>
-                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
-            </padding>
+        <StackPane alignment="TOP_CENTER" styleClass="app-canvas">
+            <VBox spacing="22.0" maxWidth="960.0" styleClass="page-container">
 
-            <!-- Header -->
-            <VBox spacing="10.0"
-                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <Label text="🧭 PLAN A TRIP"
-                           style="-fx-background-color: #dbeafe; -fx-text-fill: #1e40af; -fx-font-weight: bold; -fx-padding: 4 10; -fx-background-radius: 12;">
-                        <font><Font size="11.0" /></font>
-                    </Label>
-                </HBox>
-                <Label text="Where are you headed?" textFill="#0f172a">
-                    <font><Font name="System Bold" size="20.0" /></font>
-                </Label>
-                <Label text="Set up the basics, then take the preferences quiz. Gemini uses both to plan morning, afternoon and evening options for every day."
-                       textFill="#64748b" wrapText="true">
-                    <font><Font size="13.0" /></font>
-                </Label>
-            </VBox>
-
-            <!-- Shown when a trip is already open, so you can jump back in -->
-            <HBox fx:id="currentTripBox" alignment="CENTER_LEFT" spacing="12.0" visible="false" managed="false"
-                  style="-fx-background-color: #eff6ff; -fx-border-color: #bfdbfe; -fx-border-radius: 10; -fx-background-radius: 10; -fx-padding: 12 16;">
-                <Label fx:id="currentTripLabel" text="" textFill="#1e3a8a" wrapText="true">
-                    <font><Font name="System Bold" size="13.0" /></font>
-                </Label>
-                <Region HBox.hgrow="ALWAYS" />
-                <Button text="Travelers →" onAction="#goToSharedTrip"
-                        style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
-                <Button text="Quiz →" onAction="#goToQuiz"
-                        style="-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 6 12; -fx-cursor: hand;" />
-                <Button text="Itinerary →" onAction="#goToItinerary"
-                        style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 7 12; -fx-background-radius: 8; -fx-cursor: hand;" />
-            </HBox>
-
-            <!-- The form -->
-            <VBox spacing="16.0"
-                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 24; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-
-                <!-- Destination -->
+                <!-- Page Header -->
                 <VBox spacing="6.0">
-                    <Label text="Destination" textFill="#0f172a">
-                        <font><Font name="System Bold" size="14.0" /></font>
-                    </Label>
-                    <TextField fx:id="destinationField" promptText="e.g. San Diego" maxWidth="420.0"
-                               style="-fx-background-radius: 8; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-padding: 8 10;" />
-                    <Label fx:id="destinationError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
-                        <font><Font size="12.0" /></font>
-                    </Label>
+                    <Label text="PLAN A TRIP" styleClass="badge, badge-teal" />
+                    <Label text="Where are you headed?" styleClass="page-title" />
+                    <Label text="Set up the essentials below, then complete the quick preferences quiz to generate tailored daily options."
+                           styleClass="body-text" wrapText="true" />
                 </VBox>
 
-                <!-- Dates -->
-                <VBox spacing="6.0">
-                    <Label text="Dates" textFill="#0f172a">
-                        <font><Font name="System Bold" size="14.0" /></font>
-                    </Label>
+                <!-- Active Trip Quick-Resume Banner -->
+                <HBox fx:id="currentTripBox" alignment="CENTER_LEFT" spacing="12.0"
+                      visible="false" managed="false" styleClass="banner-info">
+                    <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                        <Label text="CURRENTLY OPEN TRIP" styleClass="badge, badge-teal" />
+                        <Label fx:id="currentTripLabel" text="" styleClass="item-title" wrapText="true" />
+                    </VBox>
+                    <Button text="Travelers" onAction="#goToSharedTrip" styleClass="btn-secondary, btn-sm" />
+                    <Button text="Quiz" onAction="#goToQuiz" styleClass="btn-soft, btn-sm" />
+                    <Button text="Itinerary" onAction="#goToItinerary" styleClass="btn-primary, btn-sm" />
+                </HBox>
+
+                <!-- Trip Creation Form Card -->
+                <VBox spacing="20.0" styleClass="card">
+                    <VBox spacing="3.0">
+                        <Label text="New Trip Details" styleClass="section-title" />
+                        <Label text="Trips can span 1 to 7 days. You can invite additional travelers right after creation."
+                               styleClass="meta-text" wrapText="true" />
+                    </VBox>
+
+                    <!-- Row 1: Destination + Trip Type -->
+                    <HBox spacing="18.0" alignment="TOP_LEFT">
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <Label text="Destination" styleClass="field-label" />
+                            <TextField fx:id="destinationField" promptText="e.g. San Diego, Tokyo, Austin" />
+                            <Label fx:id="destinationError" styleClass="field-error"
+                                   managed="false" visible="false" wrapText="true" />
+                        </VBox>
+
+                        <VBox spacing="6.0" prefWidth="250.0" minWidth="210.0">
+                            <Label text="Trip Type" styleClass="field-label" />
+                            <ComboBox fx:id="tripTypeCombo" promptText="Select trip vibe" maxWidth="Infinity" />
+                            <Label fx:id="tripTypeError" styleClass="field-error"
+                                   managed="false" visible="false" wrapText="true" />
+                        </VBox>
+                    </HBox>
+
+                    <!-- Row 2: Dates + Budget -->
+                    <HBox spacing="18.0" alignment="TOP_LEFT">
+                        <VBox spacing="6.0" HBox.hgrow="ALWAYS">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <Label text="Travel Dates" styleClass="field-label" />
+                                <Label fx:id="tripLengthLabel" text="" visible="false" managed="false"
+                                       styleClass="badge, badge-teal" />
+                            </HBox>
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <DatePicker fx:id="startDatePicker" promptText="Start date" HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                                <Label text="to" styleClass="meta-text" />
+                                <DatePicker fx:id="endDatePicker" promptText="End date" HBox.hgrow="ALWAYS" maxWidth="Infinity" />
+                            </HBox>
+                            <Label text="Select between 1 and 7 days." styleClass="subtle-text" />
+                            <Label fx:id="datesError" styleClass="field-error"
+                                   managed="false" visible="false" wrapText="true" />
+                        </VBox>
+
+                        <VBox spacing="6.0" prefWidth="250.0" minWidth="210.0">
+                            <Label text="Total Group Budget (USD)" styleClass="field-label" />
+                            <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                <Label text="\$" styleClass="card-title" />
+                                <TextField fx:id="budgetField" promptText="2400" HBox.hgrow="ALWAYS" />
+                            </HBox>
+                            <Label text="Combined target for the whole trip." styleClass="subtle-text" />
+                            <Label fx:id="budgetError" styleClass="field-error"
+                                   managed="false" visible="false" wrapText="true" />
+                        </VBox>
+                    </HBox>
+
+                    <Region styleClass="divider" />
+
+                    <!-- Submit Bar -->
                     <HBox alignment="CENTER_LEFT" spacing="12.0">
-                        <DatePicker fx:id="startDatePicker" promptText="Start date" prefWidth="170.0" />
-                        <Label text="to" textFill="#64748b" />
-                        <DatePicker fx:id="endDatePicker" promptText="End date" prefWidth="170.0" />
-                        <Label fx:id="tripLengthLabel" text="" textFill="#2563eb">
-                            <font><Font name="System Bold" size="13.0" /></font>
-                        </Label>
+                        <Button fx:id="createTripBtn" text="Create Trip &amp; Start Quiz"
+                                contentDisplay="RIGHT"
+                                onAction="#handleCreateTrip" styleClass="btn-primary" />
+                        <ProgressIndicator fx:id="createSpinner" prefWidth="22.0" prefHeight="22.0"
+                                           visible="false" managed="false" />
                     </HBox>
-                    <Label text="1 to 7 days." textFill="#94a3b8">
-                        <font><Font size="12.0" /></font>
-                    </Label>
-                    <Label fx:id="datesError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
-                        <font><Font size="12.0" /></font>
-                    </Label>
+
+                    <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity"
+                           visible="false" managed="false" />
                 </VBox>
 
-                <!-- Trip type -->
-                <VBox spacing="6.0">
-                    <Label text="Trip type" textFill="#0f172a">
-                        <font><Font name="System Bold" size="14.0" /></font>
-                    </Label>
-                    <ComboBox fx:id="tripTypeCombo" promptText="Choose one" prefWidth="220.0" />
-                    <Label fx:id="tripTypeError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
-                        <font><Font size="12.0" /></font>
-                    </Label>
-                </VBox>
-
-                <!-- Budget -->
-                <VBox spacing="6.0">
-                    <Label text="Total budget" textFill="#0f172a">
-                        <font><Font name="System Bold" size="14.0" /></font>
-                    </Label>
-                    <HBox alignment="CENTER_LEFT" spacing="8.0">
-                        <Label text="\$" textFill="#334155">
-                            <font><Font name="System Bold" size="15.0" /></font>
-                        </Label>
-                        <TextField fx:id="budgetField" promptText="2400" prefWidth="160.0"
-                                   style="-fx-background-radius: 8; -fx-border-color: #cbd5e1; -fx-border-radius: 8; -fx-padding: 8 10;" />
-                        <Label text="USD for the whole trip" textFill="#94a3b8">
-                            <font><Font size="12.0" /></font>
-                        </Label>
+                <!-- Earlier Trips List Card -->
+                <VBox spacing="14.0" styleClass="card">
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                            <Label text="Your Trips" styleClass="section-title" />
+                            <Label fx:id="tripsMessageLabel" text="Loading your trips..."
+                                   styleClass="meta-text" wrapText="true" />
+                        </VBox>
                     </HBox>
-                    <Label fx:id="budgetError" textFill="#dc2626" managed="false" visible="false" wrapText="true">
-                        <font><Font size="12.0" /></font>
-                    </Label>
+                    <VBox fx:id="tripsList" spacing="10.0" />
                 </VBox>
 
-                <Region prefHeight="1.0" style="-fx-background-color: #f1f5f9;" />
-
-                <HBox alignment="CENTER_LEFT" spacing="12.0">
-                    <Button fx:id="createTripBtn" text="Create Trip &amp; Start Quiz →" onAction="#handleCreateTrip"
-                            style="-fx-background-color: #059669; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 11 22; -fx-background-radius: 8; -fx-cursor: hand;" />
-                    <Button text="🧪 Load Demo Group Trip" onAction="#handleLoadDemoTrip"
-                            style="-fx-background-color: #eff6ff; -fx-border-color: #93c5fd; -fx-border-radius: 8; -fx-text-fill: #1d4ed8; -fx-font-weight: bold; -fx-padding: 10 16; -fx-background-radius: 8; -fx-cursor: hand;" />
-                    <ProgressIndicator fx:id="createSpinner" prefWidth="24.0" prefHeight="24.0" visible="false" />
-                </HBox>
-
-                <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity">
-                    <font><Font size="13.0" /></font>
-                </Label>
             </VBox>
-
-            <!-- Earlier trips, so you can reopen one after restarting the app -->
-            <VBox spacing="10.0"
-                  style="-fx-background-color: white; -fx-background-radius: 12; -fx-border-color: #e2e8f0; -fx-border-radius: 12; -fx-padding: 20; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.03), 8, 0, 0, 2);">
-                <Label text="Your trips" textFill="#0f172a">
-                    <font><Font name="System Bold" size="15.0" /></font>
-                </Label>
-                <Label fx:id="tripsMessageLabel" text="Loading..." textFill="#64748b" wrapText="true">
-                    <font><Font size="13.0" /></font>
-                </Label>
-                <VBox fx:id="tripsList" spacing="8.0" />
-            </VBox>
-
-        </VBox>
+        </StackPane>
     </content>
 </ScrollPane>

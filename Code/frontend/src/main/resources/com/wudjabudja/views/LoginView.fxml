@@ -6,57 +6,104 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
-<VBox xmlns="http://javafx.com/javafx/21"
+<HBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml/1"
       fx:controller="com.wudjabudja.controllers.LoginController"
-      alignment="CENTER"
-      spacing="16.0"
-      prefWidth="420.0"
-      prefHeight="520.0"
-      style="-fx-background-color: #f8fafc;">
+      prefWidth="960.0"
+      prefHeight="640.0"
+      styleClass="app-canvas">
 
-    <padding>
-        <Insets top="40.0" right="40.0" bottom="40.0" left="40.0" />
-    </padding>
+    <!-- Left Atmospheric Brand Panel -->
+    <VBox prefWidth="420.0" minWidth="360.0" spacing="22.0" styleClass="auth-brand-pane">
+        <!-- Brand Lockup -->
+        <HBox alignment="CENTER_LEFT" spacing="12.0">
+            <StackPane fx:id="brandLogoBadge" styleClass="sidebar-brand-badge" />
+            <VBox spacing="1.0">
+                <Label text="WudjaBudja" styleClass="sidebar-brand-title" />
+                <Label text="AI Group Travel Concierge" styleClass="sidebar-brand-subtitle" />
+            </VBox>
+        </HBox>
 
-    <!-- App Branding -->
-    <Label text="WudjaBudja" textFill="#1e293b">
-        <font>
-            <Font name="System Bold" size="28.0" />
-        </font>
-    </Label>
-    
-    <Label text="Plan group trips without the headache" textFill="#64748b">
-        <font>
-            <Font size="14.0" />
-        </font>
-    </Label>
+        <Region prefHeight="8.0" />
 
-    <VBox spacing="6.0" alignment="CENTER_LEFT" maxWidth="320.0">
-        <Label text="Email Address" textFill="#334155" />
-        <TextField fx:id="emailField" promptText="you@example.com" prefHeight="38.0" />
+        <VBox spacing="10.0">
+            <Label text="Group trips, planned without the chaos."
+                   styleClass="hero-title" wrapText="true" minHeight="-Infinity" />
+            <Label text="Balance everyone's wake times, budgets, and travel vibes automatically — then elect your perfect days together."
+                   styleClass="hero-subtitle" wrapText="true" minHeight="-Infinity" />
+        </VBox>
+
+        <Region VBox.vgrow="ALWAYS" />
+
+        <!-- Value Pillars -->
+        <VBox spacing="10.0">
+            <HBox spacing="12.0" alignment="CENTER_LEFT" styleClass="auth-feature-row">
+                <StackPane fx:id="featureIcon1" />
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="6-Step Preference Quiz" styleClass="auth-feature-title" />
+                    <Label text="Capture each traveler's schedule, radius, and budget caps." styleClass="auth-feature-desc" wrapText="true" minHeight="-Infinity" />
+                </VBox>
+            </HBox>
+            <HBox spacing="12.0" alignment="CENTER_LEFT" styleClass="auth-feature-row">
+                <StackPane fx:id="featureIcon2" />
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="AI Group &amp; Subgroup Options" styleClass="auth-feature-title" />
+                    <Label text="3 curated activities per time block with smart group splits." styleClass="auth-feature-desc" wrapText="true" minHeight="-Infinity" />
+                </VBox>
+            </HBox>
+            <HBox spacing="12.0" alignment="CENTER_LEFT" styleClass="auth-feature-row">
+                <StackPane fx:id="featureIcon3" />
+                <VBox spacing="2.0" HBox.hgrow="ALWAYS">
+                    <Label text="Borda Count Consensus" styleClass="auth-feature-title" />
+                    <Label text="Fair ranked-choice voting with lowest-cost tie-breaking." styleClass="auth-feature-desc" wrapText="true" minHeight="-Infinity" />
+                </VBox>
+            </HBox>
+        </VBox>
     </VBox>
 
-    <VBox spacing="6.0" alignment="CENTER_LEFT" maxWidth="320.0">
-        <Label text="Password" textFill="#334155" />
-        <PasswordField fx:id="passwordField" promptText="Enter your password" prefHeight="38.0" />
-    </VBox>
+    <!-- Right Clean Form Canvas -->
+    <StackPane HBox.hgrow="ALWAYS" styleClass="auth-form-pane">
+        <VBox spacing="18.0" maxWidth="410.0" maxHeight="-Infinity" styleClass="auth-card">
+            <VBox spacing="5.0">
+                <Label text="WELCOME BACK" styleClass="badge, badge-teal" />
+                <Label text="Sign in to WudjaBudja" styleClass="page-title">
+                    <VBox.margin><Insets top="4.0" /></VBox.margin>
+                </Label>
+                <Label text="Enter your credentials to access your group trips and itineraries."
+                       styleClass="body-text" wrapText="true" />
+            </VBox>
 
-    <!-- Error message display area (hidden/empty until an error occurs) -->
-    <Label fx:id="errorLabel" text="" textFill="#dc2626" wrapText="true" maxWidth="320.0">
-        <font>
-            <Font size="13.0" />
-        </font>
-    </Label>
+            <VBox spacing="14.0">
+                <VBox spacing="6.0">
+                    <Label text="Email Address" styleClass="field-label" />
+                    <TextField fx:id="emailField" promptText="you@example.com" onAction="#handleLogin" />
+                </VBox>
 
-    <!-- Action Buttons -->
-    <Button fx:id="loginButton" text="Log In" onAction="#handleLogin"
-            prefWidth="320.0" prefHeight="40.0"
-            style="-fx-background-color: #2563eb; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" />
+                <VBox spacing="6.0">
+                    <Label text="Password" styleClass="field-label" />
+                    <PasswordField fx:id="passwordField" promptText="Enter your password" onAction="#handleLogin" />
+                </VBox>
+            </VBox>
 
-    <Hyperlink text="Don't have an account? Sign up" onAction="#goToRegister" textFill="#2563eb" />
+            <!-- Inline Error Banner -->
+            <Label fx:id="errorLabel" text="" wrapText="true" maxWidth="Infinity"
+                   visible="false" managed="false" />
 
-</VBox>
+            <Button fx:id="loginButton" text="Sign In" onAction="#handleLogin"
+                    maxWidth="Infinity" styleClass="btn-primary" />
+
+            <Region styleClass="divider" />
+
+            <HBox alignment="CENTER" spacing="4.0">
+                <Label text="New to WudjaBudja?" styleClass="meta-text" />
+                <Hyperlink text="Create an account" onAction="#goToRegister" styleClass="auth-link" />
+            </HBox>
+        </VBox>
+    </StackPane>
+
+</HBox>

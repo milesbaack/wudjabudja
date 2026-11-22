@@ -1,10 +1,10 @@
 package com.wudjabudja.navigation;
 
 import com.wudjabudja.controllers.MainController;
+import com.wudjabudja.ui.UiTheme;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -38,6 +38,15 @@ public class NavigationManager {
 
     public String getInitialViewPath() {
         return initialViewPath;
+    }
+
+    /**
+     * Refreshes the sidebar's active trip badge and nav item states when the open trip changes.
+     */
+    public void refreshSidebar() {
+        if (mainController != null) {
+            mainController.refreshTripContext();
+        }
     }
 
     /**
@@ -86,8 +95,13 @@ public class NavigationManager {
     public void switchScene(Stage stage, String fxmlPath) {
         try {
             Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
-            stage.setScene(new Scene(root));
-            stage.show();
+            if (fxmlPath.contains("MainView.fxml")) {
+                UiTheme.showMainScene(stage, root, "WudjaBudja — Group Travel Planner");
+            } else if (fxmlPath.contains("RegisterView.fxml")) {
+                UiTheme.showAuthScene(stage, root, "WudjaBudja — Create Account");
+            } else {
+                UiTheme.showAuthScene(stage, root, "WudjaBudja — Sign In");
+            }
         } catch (IOException e) {
             System.err.println("NavigationManager: Failed to load scene from " + fxmlPath);
             e.printStackTrace();

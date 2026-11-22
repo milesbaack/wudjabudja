@@ -1,57 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.BriefingController"
             fitToWidth="true"
-            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+            styleClass="page-scroll">
 
     <content>
-        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
-            <padding>
-                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
-            </padding>
+        <StackPane alignment="TOP_CENTER" styleClass="app-canvas">
+            <VBox spacing="20.0" maxWidth="1160.0" styleClass="page-container">
 
-            <VBox spacing="4.0">
-                <Label text="Trip Briefing — Tokyo, Japan 🇯🇵" textFill="#0f172a">
-                    <font><Font name="System Bold" size="24.0" /></font>
-                </Label>
-                <Label text="Essential cultural etiquette, packing suggestions, and local tips before you depart." textFill="#64748b">
-                    <font><Font size="14.0" /></font>
-                </Label>
-            </VBox>
+                <!-- Trip Header Card -->
+                <VBox spacing="14.0" styleClass="card">
+                    <HBox alignment="CENTER_LEFT" spacing="12.0">
+                        <VBox spacing="5.0" HBox.hgrow="ALWAYS">
+                            <Label text="PRE-DEPARTURE BRIEFING" styleClass="badge, badge-violet" />
+                            <Label fx:id="tripTitleLabel" text="Trip Briefing" styleClass="page-title" wrapText="true" />
+                            <Label fx:id="tripDetailsLabel" text="" styleClass="body-text" wrapText="true" />
+                        </VBox>
+                    </HBox>
 
-            <!-- Cards for Customs, Packing, Facts -->
-            <VBox spacing="16.0">
-                <!-- Cultural Customs Card -->
-                <VBox spacing="8.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 20;">
-                    <Label text="⛩️ Cultural Customs &amp; Etiquette" textFill="#0f172a">
-                        <font><Font name="System Bold" size="16.0" /></font>
-                    </Label>
-                    <Label text="• Tipping is not customary in Japan; exceptional service is included in your bill.\n• Carry cash or Suica/Pasmo IC cards; many local ramen shops only accept physical currency.\n• Remove your shoes before entering traditional ryokans, temple halls, and homes."
-                           textFill="#475569" wrapText="true">
-                        <font><Font size="13.0" /></font>
-                    </Label>
+                    <FlowPane hgap="10.0" vgap="10.0" alignment="CENTER_LEFT">
+                        <Button fx:id="generateBtn" text="Generate Trip Briefing" onAction="#handleGenerate"
+                                styleClass="btn-primary" />
+                        <Button text="Shared Trip" onAction="#goToSharedTrip" styleClass="btn-secondary" />
+                        <Button fx:id="editPrefsBtn" text="Edit Preferences" onAction="#goToPreferences"
+                                styleClass="btn-secondary" />
+                    </FlowPane>
+
+                    <!-- Busy Spinner -->
+                    <HBox fx:id="busyBox" alignment="CENTER_LEFT" spacing="10.0"
+                          visible="false" managed="false" styleClass="banner-busy">
+                        <ProgressIndicator prefWidth="20.0" prefHeight="20.0" />
+                        <Label fx:id="busyLabel" text="" styleClass="banner-busy-text" wrapText="true" />
+                    </HBox>
+
+                    <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity"
+                           visible="false" managed="false" />
                 </VBox>
 
-                <!-- Weather & Packing Card -->
-                <VBox spacing="8.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-border-color: #e2e8f0; -fx-border-radius: 10; -fx-padding: 20;">
-                    <Label text="🎒 What to Pack for November" textFill="#0f172a">
-                        <font><Font name="System Bold" size="16.0" /></font>
-                    </Label>
-                    <Label text="• Light layers: Crisp autumn days (14–18°C) and cooler evenings (8–10°C).\n• Very comfortable slip-on walking shoes (you will easily walk 15,000–20,000 steps daily).\n• Portable power bank for continuous Google Maps navigation and Suica phone tapping."
-                           textFill="#475569" wrapText="true">
-                        <font><Font size="13.0" /></font>
-                    </Label>
+                <!-- Empty State -->
+                <VBox fx:id="emptyStateBox" alignment="CENTER" spacing="12.0"
+                      visible="false" managed="false" styleClass="empty-state">
+                    <Label text="No trip briefing generated yet" styleClass="section-title" />
+                    <Label text="Generate a personalized destination guide covering local cultural customs, essential phrases, a weather-tailored packing checklist, historical facts, and souvenir ideas for every traveler."
+                           styleClass="body-text" wrapText="true" maxWidth="580.0"
+                           style="-fx-text-alignment: center;" />
+                    <Button text="Generate Trip Briefing" onAction="#handleGenerate" styleClass="btn-primary" />
+                </VBox>
+
+                <!-- Live Briefing Content Container -->
+                <VBox fx:id="briefingContentBox" spacing="20.0" visible="false" managed="false">
+
+                    <!-- 1. Season Advisory & Weather Note Banner -->
+                    <VBox spacing="10.0" styleClass="banner-advisory">
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Label text="Season, Weather &amp; Crowd Advisory" styleClass="section-title" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Label fx:id="crowdLevelBadge" text="MEDIUM CROWDS" styleClass="badge, badge-amber" />
+                        </HBox>
+                        <Label fx:id="seasonSummaryLabel" text="" styleClass="item-title" wrapText="true" />
+                        <Label fx:id="weatherNoteLabel" text="" styleClass="body-text" wrapText="true" />
+                    </VBox>
+
+                    <!-- 2. Two-Column Row: Cultural Customs & Language Guide -->
+                    <HBox spacing="20.0">
+                        <VBox HBox.hgrow="ALWAYS" prefWidth="420.0" spacing="12.0" styleClass="card">
+                            <VBox spacing="3.0">
+                                <Label text="Cultural Customs &amp; Etiquette" styleClass="section-title" />
+                                <Label text="Local norms and tips so your group blends in effortlessly."
+                                       styleClass="meta-text" wrapText="true" />
+                            </VBox>
+                            <VBox fx:id="customsListBox" spacing="10.0" />
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" prefWidth="420.0" spacing="12.0" styleClass="card">
+                            <HBox alignment="CENTER_LEFT" spacing="10.0">
+                                <Label text="Language &amp; Local Phrases" styleClass="section-title" />
+                                <Region HBox.hgrow="ALWAYS" />
+                                <Label fx:id="primaryLanguageBadge" text="" styleClass="badge, badge-violet" />
+                            </HBox>
+                            <Label text="Useful expressions and local slang to know before you arrive."
+                                   styleClass="meta-text" wrapText="true" />
+                            <VBox fx:id="phrasesListBox" spacing="10.0" />
+                        </VBox>
+                    </HBox>
+
+                    <!-- 3. Interactive Packing Checklist Card -->
+                    <VBox spacing="12.0" styleClass="card">
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <VBox spacing="3.0" HBox.hgrow="ALWAYS">
+                                <Label text="Group Packing Checklist" styleClass="section-title" />
+                                <Label text="Tailored to your travel dates, weather, and activities — click items to check them off."
+                                       styleClass="meta-text" wrapText="true" />
+                            </VBox>
+                            <Label fx:id="packingProgressBadge" text="0 / 0 packed" styleClass="badge, badge-neutral" />
+                        </HBox>
+                        <VBox fx:id="packingListBox" spacing="8.0" />
+                    </VBox>
+
+                    <!-- 4. Two-Column Row: Personalized Souvenirs & Destination Facts -->
+                    <HBox spacing="20.0">
+                        <VBox HBox.hgrow="ALWAYS" prefWidth="420.0" spacing="12.0" styleClass="card">
+                            <VBox spacing="3.0">
+                                <Label text="Personalized Souvenir Ideas" styleClass="section-title" />
+                                <Label text="Signature local keepsakes matched to each traveler's quiz interests."
+                                       styleClass="meta-text" wrapText="true" />
+                            </VBox>
+                            <VBox fx:id="souvenirsListBox" spacing="10.0" />
+                        </VBox>
+
+                        <VBox HBox.hgrow="ALWAYS" prefWidth="420.0" spacing="12.0" styleClass="card">
+                            <VBox spacing="3.0">
+                                <Label text="Did You Know? Destination Facts" styleClass="section-title" />
+                                <Label text="Quick historical and cultural highlights about your destination."
+                                       styleClass="meta-text" wrapText="true" />
+                            </VBox>
+                            <VBox fx:id="factsListBox" spacing="10.0" />
+                        </VBox>
+                    </HBox>
+
                 </VBox>
             </VBox>
-        </VBox>
+        </StackPane>
     </content>
 </ScrollPane>

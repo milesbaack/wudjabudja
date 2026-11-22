@@ -37,6 +37,10 @@ public class BackendClient {
         return send(HttpRequest.newBuilder().GET(), path, timeout, type);
     }
 
+    public <T> ApiResult<T> delete(String path, Duration timeout, TypeReference<T> type) {
+        return send(HttpRequest.newBuilder().DELETE(), path, timeout, type);
+    }
+
     public <T> ApiResult<T> post(String path, Object body, Duration timeout, TypeReference<T> type) {
         String json;
         try {
@@ -75,6 +79,9 @@ public class BackendClient {
         String body = response.body();
         if (status < 200 || status >= 300) {
             return ApiResult.fail(status, errorMessage(status, body));
+        }
+        if (body == null || body.isBlank()) {
+            return ApiResult.ok(status, null);
         }
         try {
             return ApiResult.ok(status, MAPPER.readValue(body, type));
