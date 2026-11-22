@@ -1,12 +1,15 @@
 package com.wudjabudja.wudjabudja_backend.model;
 
+import com.wudjabudja.wudjabudja_backend.dto.TripBriefing;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 
-// One row in the trips table. briefing_data isn't mapped yet (Trip Briefing is a later sprint).
+// One row in the trips table, including briefing_data JSONB (BRIEF-01 / BRIEF-02).
 @Entity
 @Table(name = "trips")
 public class Trip {
@@ -39,6 +42,10 @@ public class Trip {
     @Column(name = "join_code")
     private String joinCode;
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "briefing_data")
+    private TripBriefing briefingData;
+
     @Column(name = "created_at")
     private OffsetDateTime createdAt = OffsetDateTime.now();
 
@@ -68,6 +75,9 @@ public class Trip {
 
     public String getJoinCode() { return joinCode; }
     public void setJoinCode(String joinCode) { this.joinCode = joinCode; }
+
+    public TripBriefing getBriefingData() { return briefingData; }
+    public void setBriefingData(TripBriefing briefingData) { this.briefingData = briefingData; }
 
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(OffsetDateTime createdAt) { this.createdAt = createdAt; }

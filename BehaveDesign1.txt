@@ -1,0 +1,71 @@
+@startuml
+title WudjaBudja — Main UI Navigation Flow (UML State Diagram)
+
+hide empty description
+skinparam backgroundColor #FFFFFF
+skinparam shadowing false
+skinparam roundcorner 16
+skinparam nodesep 55
+skinparam ranksep 55
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam ArrowColor #334155
+skinparam ArrowFontColor #1e293b
+skinparam ArrowFontSize 11
+
+skinparam state {
+  BackgroundColor #eff6ff
+  BorderColor #2563eb
+  BorderThickness 1.5
+  FontColor #0f172a
+  FontStyle bold
+  AttributeFontColor #334155
+  AttributeFontSize 11
+  StartColor #0f172a
+  EndColor #0f172a
+}
+
+[*] -down-> Login
+
+state "Login Page" as Login
+Login : Submit Login [invalid] / show error
+
+state "Register Page" as Register
+Register : Submit [invalid] / show error
+
+Login -right-> Register : Click Create Account
+Register -left-> Login : Click Back to Login
+Login -left-> [*] : Close App
+
+Login -down-> MainShell : Submit Login [valid]\n/ set session user
+Register -down-> MainShell : Submit [valid]\n/ set session user
+
+state "Main App Shell" as MainShell #FFFFFF {
+  [*] -down-> PlanTrip
+
+  state "Plan a Trip" as PlanTrip
+  PlanTrip : Trip Tab [no trip] / show reminder
+  PlanTrip : Create Trip [invalid] / show errors
+
+  state "Preferences Quiz" as Quiz
+  Quiz : Save Quiz [no interests] / show error
+
+  state "Shared Trip" as SharedTrip
+  state "Itinerary" as Itinerary
+  state "Group Voting" as Voting
+
+  PlanTrip -right-> Quiz : Create Trip [valid]\n/ set current trip
+  PlanTrip -down-> Itinerary : Open Saved Trip\n/ set current trip
+
+  Quiz -right-> SharedTrip : Save Quiz\n[at least 1 interest]
+  SharedTrip -left-> Quiz : Take / Edit Quiz\n/ set active traveler
+
+  SharedTrip -down-> Voting : Click Vote\n/ set active traveler
+  Itinerary -up-> Quiz : Edit Preferences
+  Itinerary -right-> Voting : Vote on Options
+  Voting -left-> Itinerary : View Itinerary
+}
+
+MainShell -up-> Login : Click Logout\n/ clear session
+
+@enduml

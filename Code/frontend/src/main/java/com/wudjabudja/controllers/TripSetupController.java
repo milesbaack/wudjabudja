@@ -7,6 +7,8 @@ import com.wudjabudja.navigation.NavigationManager;
 import com.wudjabudja.services.ApiResult;
 import com.wudjabudja.services.TripService;
 import com.wudjabudja.session.AppSession;
+import com.wudjabudja.ui.Icons;
+import com.wudjabudja.ui.UiTheme;
 import javafx.concurrent.Task;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
@@ -31,7 +33,7 @@ import java.util.ResourceBundle;
  */
 public class TripSetupController implements Initializable {
 
-    private static final int MAX_DAYS = 7;   // same limit as the backend
+    private static final int MAX_DAYS = 7;
 
     @FXML private HBox currentTripBox;
     @FXML private Label currentTripLabel;
@@ -60,14 +62,15 @@ public class TripSetupController implements Initializable {
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         tripTypeCombo.getItems().setAll(TripType.values());
+        if (createTripBtn != null) {
+            createTripBtn.setGraphic(Icons.create(Icons.ARROW_RIGHT, 15, "#FFFFFF"));
+        }
 
-        // Show "3 days" next to the dates as soon as both are picked
         startDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> updateTripLength());
         endDatePicker.valueProperty().addListener((obs, oldVal, newVal) -> updateTripLength());
 
-        // e.g. "Create a trip first" when the quiz sent us here
         String flash = AppSession.takeFlashMessage();
-        if (flash != null) showStatus(flash, true);
+        if (flash != null) showStatus(flash, AppSession.isLastFlashError());
 
         showCurrentTrip();
         loadTrips();
@@ -76,12 +79,11 @@ public class TripSetupController implements Initializable {
     @FXML
     public void handleCreateTrip(ActionEvent event) {
         TripRequest request = buildRequest();
-        if (request == null) return;   // field errors are already showing
+        if (request == null) return;
 
         setBusy(true);
         showStatus("Creating your trip...", false);
 
-        // Off the UI thread, so the window doesn't freeze if the backend is slow or down
         Task<ApiResult<Trip>> task = new Task<>() {
             @Override
             protected ApiResult<Trip> call() {
@@ -93,14 +95,15 @@ public class TripSetupController implements Initializable {
             ApiResult<Trip> result = task.getValue();
             if (result.success()) {
                 AppSession.setCurrentTrip(result.data());
+                NavigationManager.getInstance().refreshSidebar();
                 NavigationManager.getInstance().navigateTo("preferences");
             } else {
-                showStatus("✗ " + result.message(), true);
+                showStatus(result.message(), true);
             }
         });
         task.setOnFailed(e -> {
             setBusy(false);
-            showStatus("✗ Something went wrong creating the trip: " + task.getException().getMessage(), true);
+            showStatus("Something went wrong creating the trip: " + task.getException().getMessage(), true);
         });
         startInBackground(task);
     }
@@ -111,13 +114,17 @@ public class TripSetupController implements Initializable {
     }
 
     @FXML
+    public void goToSharedTrip(ActionEvent event) {
+        NavigationManager.getInstance().navigateTo("trips");
+    }
+
+    @FXML
     public void goToItinerary(ActionEvent event) {
         NavigationManager.getInstance().navigateTo("itinerary");
     }
 
     // ---------- form checks ----------
 
-    // Returns the request, or null after showing what's wrong next to each field
     private TripRequest buildRequest() {
         clearErrors();
         boolean ok = true;
@@ -152,13 +159,12 @@ public class TripSetupController implements Initializable {
         }
 
         if (!ok) {
-            showStatus("Fix the highlighted fields and try again.", true);
+            showStatus("Please fix the highlighted fields and try again.", true);
             return null;
         }
         return new TripRequest(null, destination, start.toString(), end.toString(), type.getValue(), budget);
     }
 
-    // DatePicker only saves typed text when you press Enter, so read the text box ourselves too
     private LocalDate readDate(DatePicker picker) {
         String typed = picker.getEditor().getText();
         if (typed != null && !typed.isBlank()) {
@@ -167,13 +173,12 @@ public class TripSetupController implements Initializable {
                 picker.setValue(date);
                 return date;
             } catch (RuntimeException e) {
-                return null;   // unreadable text counts as missing
+                return null;
             }
         }
         return picker.getValue();
     }
 
-    // "$2,400" or "2400.50" -> a number. null if it isn't one.
     private static BigDecimal parseBudget(String text) {
         if (text == null) return null;
         String clean = text.replace("$", "").replace(",", "").trim();
@@ -190,11 +195,15 @@ public class TripSetupController implements Initializable {
         LocalDate end = endDatePicker.getValue();
         if (start == null || end == null || end.isBefore(start)) {
             tripLengthLabel.setText("");
+            tripLengthLabel.setVisible(false);
+            tripLengthLabel.setManaged(false);
             return;
         }
         long days = ChronoUnit.DAYS.between(start, end) + 1;
         tripLengthLabel.setText(days + (days == 1 ? " day" : " days"));
-        tripLengthLabel.setStyle(days > MAX_DAYS ? "-fx-text-fill: #dc2626;" : "-fx-text-fill: #2563eb;");
+        tripLengthLabel.setVisible(true);
+        tripLengthLabel.setManaged(true);
+        UiTheme.setBadgeVariant(tripLengthLabel, days > MAX_DAYS ? "badge-danger" : "badge-teal");
     }
 
     // ---------- current trip + "Your trips" ----------
@@ -204,7 +213,7 @@ public class TripSetupController implements Initializable {
         boolean has = trip != null;
         currentTripBox.setVisible(has);
         currentTripBox.setManaged(has);
-        if (has) currentTripLabel.setText("Working on: " + trip.title());
+        if (has) currentTripLabel.setText(trip.title() + " · " + trip.dateRangeText());
     }
 
     private void loadTrips() {
@@ -215,7 +224,7 @@ public class TripSetupController implements Initializable {
             }
         };
         task.setOnSucceeded(e -> showTrips(task.getValue()));
-        task.setOnFailed(e -> tripsMessageLabel.setText("Couldn't load your trips."));
+        task.setOnFailed(e -> tripsMessageLabel.setText("Couldn't load your saved trips."));
         startInBackground(task);
     }
 
@@ -223,36 +232,64 @@ public class TripSetupController implements Initializable {
         tripsList.getChildren().clear();
         if (!result.success()) {
             tripsMessageLabel.setText(result.message());
-            tripsMessageLabel.setStyle("-fx-text-fill: #dc2626;");
+            tripsMessageLabel.getStyleClass().removeAll("meta-text", "field-error");
+            tripsMessageLabel.getStyleClass().add("field-error");
             return;
         }
+        tripsMessageLabel.getStyleClass().removeAll("field-error");
+        if (!tripsMessageLabel.getStyleClass().contains("meta-text")) {
+            tripsMessageLabel.getStyleClass().add("meta-text");
+        }
         List<Trip> trips = result.data();
-        tripsMessageLabel.setText(trips.isEmpty() ? "No trips yet. Create your first one above." : "Pick up where you left off:");
+        tripsMessageLabel.setText(trips.isEmpty()
+                ? "No trips yet. Create your first trip above to get started."
+                : "Jump right back into an existing trip:");
         for (Trip trip : trips) {
             tripsList.getChildren().add(tripRow(trip));
         }
     }
 
     private HBox tripRow(Trip trip) {
-        Label title = new Label(trip.title());
-        title.setStyle("-fx-font-weight: bold; -fx-text-fill: #0f172a; -fx-font-size: 13px;");
-        Label details = new Label(TripType.labelFor(trip.tripType()) + " · " + trip.numDays() + " days · $"
-                + trip.totalBudget().stripTrailingZeros().toPlainString() + " budget");
-        details.setStyle("-fx-text-fill: #64748b; -fx-font-size: 12px;");
-        VBox text = new VBox(2, title, details);
+        boolean isCurrent = AppSession.getTripId() != null && AppSession.getTripId().equals(trip.id());
 
-        Button open = new Button("Open");
-        open.setStyle("-fx-background-color: white; -fx-border-color: #2563eb; -fx-border-radius: 8; -fx-text-fill: #2563eb; -fx-font-weight: bold; -fx-padding: 5 14; -fx-cursor: hand;");
+        Label title = new Label(trip.title());
+        title.getStyleClass().add("item-title");
+
+        Label typeBadge = new Label(TripType.labelFor(trip.tripType()));
+        typeBadge.getStyleClass().addAll("badge", "badge-neutral");
+
+        HBox titleLine = new HBox(8, title, typeBadge);
+        titleLine.setAlignment(Pos.CENTER_LEFT);
+        if (isCurrent) {
+            Label activeBadge = new Label("ACTIVE");
+            activeBadge.getStyleClass().addAll("badge", "badge-teal");
+            titleLine.getChildren().add(activeBadge);
+        }
+
+        String budgetStr = trip.totalBudget() != null
+                ? "$" + trip.totalBudget().stripTrailingZeros().toPlainString() + " budget"
+                : "Budget TBD";
+        Label details = new Label(trip.destination() + "  ·  " + trip.dateRangeText()
+                + " (" + trip.numDays() + (trip.numDays() == 1 ? " day)" : " days)")
+                + "  ·  " + budgetStr);
+        details.getStyleClass().add("meta-text");
+
+        VBox text = new VBox(4, titleLine, details);
+
+        Button open = new Button("Open Trip");
+        open.getStyleClass().addAll(isCurrent ? "btn-primary" : "btn-soft", "btn-sm");
         open.setOnAction(e -> {
             AppSession.setCurrentTrip(trip);
+            NavigationManager.getInstance().refreshSidebar();
             NavigationManager.getInstance().navigateTo("itinerary");
         });
 
         Region spacer = new Region();
         HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox row = new HBox(12, text, spacer, open);
+
+        HBox row = new HBox(14, Icons.create(Icons.MAP_PIN, 18, isCurrent ? "#0D9488" : "#64748B"), text, spacer, open);
         row.setAlignment(Pos.CENTER_LEFT);
-        row.setStyle("-fx-background-color: #f8fafc; -fx-border-color: #e2e8f0; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 10 14;");
+        row.getStyleClass().add(isCurrent ? "list-row-active" : "list-row");
         return row;
     }
 
@@ -261,9 +298,9 @@ public class TripSetupController implements Initializable {
     private void setBusy(boolean busy) {
         createTripBtn.setDisable(busy);
         createSpinner.setVisible(busy);
+        createSpinner.setManaged(busy);
     }
 
-    // Always returns false, so callers can write: ok = showFieldError(...)
     private boolean showFieldError(Label label, String message) {
         label.setText(message);
         label.setVisible(true);
@@ -280,15 +317,12 @@ public class TripSetupController implements Initializable {
     }
 
     private void showStatus(String message, boolean isError) {
-        statusLabel.setText(message);
-        statusLabel.setStyle(isError
-                ? "-fx-text-fill: #dc2626; -fx-font-weight: bold;"
-                : "-fx-text-fill: #059669; -fx-font-weight: bold;");
+        UiTheme.showStatus(statusLabel, message, isError);
     }
 
     private static void startInBackground(Task<?> task) {
         Thread thread = new Thread(task, "trip-setup-request");
-        thread.setDaemon(true);   // don't keep the app alive after the window closes
+        thread.setDaemon(true);
         thread.start();
     }
 }

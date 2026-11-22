@@ -1,35 +1,51 @@
 package com.wudjabudja.controllers;
 
+import com.wudjabudja.models.Participant;
 import com.wudjabudja.navigation.NavigationManager;
+import com.wudjabudja.session.AppSession;
+import com.wudjabudja.ui.Icons;
+import com.wudjabudja.ui.UiTheme;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
-import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
-import java.io.IOException;
+import java.net.URL;
+import java.util.ResourceBundle;
 
-public class RegisterController {
+public class RegisterController implements Initializable {
 
-    @FXML
-    private TextField fullNameField;
+    @FXML private StackPane brandLogoBadge;
+    @FXML private StackPane featureIcon1;
+    @FXML private StackPane featureIcon2;
+    @FXML private StackPane featureIcon3;
 
-    @FXML
-    private TextField emailField;
+    @FXML private TextField fullNameField;
+    @FXML private TextField emailField;
+    @FXML private PasswordField passwordField;
+    @FXML private PasswordField confirmPasswordField;
+    @FXML private Label errorLabel;
 
-    @FXML
-    private PasswordField passwordField;
-
-    @FXML
-    private PasswordField confirmPasswordField;
-
-    @FXML
-    private Label errorLabel;
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        if (brandLogoBadge != null) {
+            brandLogoBadge.getChildren().setAll(Icons.create(Icons.COMPASS, 20, "#FFFFFF"));
+        }
+        if (featureIcon1 != null) {
+            featureIcon1.getChildren().setAll(Icons.create(Icons.USERS, 18, "#2DD4BF"));
+        }
+        if (featureIcon2 != null) {
+            featureIcon2.getChildren().setAll(Icons.create(Icons.CALENDAR, 18, "#2DD4BF"));
+        }
+        if (featureIcon3 != null) {
+            featureIcon3.getChildren().setAll(Icons.create(Icons.BOOK, 18, "#2DD4BF"));
+        }
+    }
 
     @FXML
     public void handleRegister(ActionEvent event) {
@@ -38,61 +54,48 @@ public class RegisterController {
         String password = passwordField.getText() == null ? "" : passwordField.getText();
         String confirmPassword = confirmPasswordField.getText() == null ? "" : confirmPasswordField.getText();
 
-        // 1. Non-empty check for all fields
         if (fullName.isEmpty() || email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
             showError("Please fill out all fields.");
             return;
         }
 
-        // 2. Email format check
         if (!email.contains("@") || !email.contains(".")) {
             showError("Please enter a valid email address.");
             return;
         }
 
-        // 3. Password length check
         if (password.length() < 6) {
             showError("Password must be at least 6 characters long.");
             return;
         }
 
-        // 4. Passwords match check
         if (!password.equals(confirmPassword)) {
             showError("Passwords do not match.");
             return;
         }
 
-        // Passed client-side validation!
         clearError();
         System.out.println("Registration valid for: " + fullName + " (" + email + ")");
 
-        // Onboarding flow: Direct new user immediately into the Preference Intake Quiz (MVP-08)
-        NavigationManager.getInstance().setInitialViewPath("/com/wudjabudja/views/PreferenceView.fxml");
-        switchScene(event, "/com/wudjabudja/views/MainView.fxml");
+        AppSession.setLoggedInUser(fullName, email);
+        AppSession.setActiveTraveler(new Participant(AppSession.USER_ID, email, fullName, "leader", false));
+        AppSession.setFlashMessage("Welcome, " + fullName + "! Create your first trip below to start the preferences quiz.", false);
+
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        NavigationManager.getInstance().switchScene(stage, "/com/wudjabudja/views/MainView.fxml");
     }
 
     @FXML
     public void goToLogin(ActionEvent event) {
-        switchScene(event, "/com/wudjabudja/views/LoginView.fxml");
+        Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        NavigationManager.getInstance().switchScene(stage, "/com/wudjabudja/views/LoginView.fxml");
     }
 
     private void showError(String message) {
-        errorLabel.setText(message);
+        UiTheme.showStatus(errorLabel, message, true);
     }
 
     private void clearError() {
-        errorLabel.setText("");
-    }
-
-    private void switchScene(ActionEvent event, String fxmlPath) {
-        try {
-            Parent root = FXMLLoader.load(getClass().getResource(fxmlPath));
-            Stage stage = (Stage) ((Node) event.getSource()).getScene().getWindow();
-            stage.setScene(new Scene(root));
-            stage.show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            showError("Failed to load view: " + fxmlPath);
-        }
+        UiTheme.clearStatus(errorLabel);
     }
 }

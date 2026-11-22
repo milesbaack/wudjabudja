@@ -1,9 +1,11 @@
 package com.wudjabudja.wudjabudja_backend.service;
 
 import com.wudjabudja.wudjabudja_backend.dto.Itinerary;
+import com.wudjabudja.wudjabudja_backend.dto.TripBriefing;
 import com.wudjabudja.wudjabudja_backend.dto.TripContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-// Sends a trip context to Gemini and returns checked activity options (MVP-05).
+// Sends a trip context to Gemini and returns checked activity options (MVP-05 / GRP-01 / MVP-12).
 // Moved from Code/ai-pipeline/GeminiTest.java: callGemini, extractModelText, checkItinerary.
 @Service
 public class GeminiService {
@@ -40,23 +42,106 @@ public class GeminiService {
     private static final String DEFAULT_MODEL = "gemini-3.6-flash";   // decisions-log, Decision 3
     private static final Duration TIMEOUT = Duration.ofMinutes(3);
 
+    static final int MAX_TRIES = 3;
+    static final Duration RETRY_WAIT = Duration.ofSeconds(2);
+    private static final Set<Integer> TEMPORARY_HTTP_CODES = Set.of(429, 500, 502, 503, 504);
+
+    @FunctionalInterface
+    interface GeminiTransport {
+        HttpResponse<String> send(HttpRequest request) throws IOException, InterruptedException;
+    }
+
+    @FunctionalInterface
+    interface Sleeper {
+        void sleep(Duration duration) throws InterruptedException;
+    }
+
     private final JsonMapper mapper;
     private final HttpClient http = HttpClient.newHttpClient();
+    private final GeminiTransport transport;
+    private final Sleeper sleeper;
+    private final String apiKeyOverride;
     private final String systemPrompt;
     private final JsonNode schema;
+    private final String briefingSystemPrompt;
+    private final JsonNode briefingSchema;
 
-    // Spring hands us its JSON mapper. The prompt and schema are read once, when the app starts.
+    // Spring hands us its JSON mapper. The prompts and schemas are read once, when the app starts.
     // Copies of Code/ai-pipeline/prompts and schemas, keep them in sync.
+    @Autowired
     public GeminiService(JsonMapper mapper) throws IOException {
+        this(mapper, null, d -> Thread.sleep(d.toMillis()), null);
+    }
+
+    // Package-private constructor for unit testing auto-retry (MVP-12) without waiting or hitting the network.
+    GeminiService(JsonMapper mapper, GeminiTransport transport, Sleeper sleeper, String apiKeyOverride) throws IOException {
         this.mapper = mapper;
+        this.transport = transport != null
+                ? transport
+                : req -> http.send(req, HttpResponse.BodyHandlers.ofString());
+        this.sleeper = sleeper != null ? sleeper : d -> Thread.sleep(d.toMillis());
+        this.apiKeyOverride = apiKeyOverride;
         this.systemPrompt = new ClassPathResource("ai/itinerary_system.txt").getContentAsString(StandardCharsets.UTF_8);
         this.schema = mapper.readTree(new ClassPathResource("ai/itinerary_schema.json").getContentAsString(StandardCharsets.UTF_8));
+        this.briefingSystemPrompt = new ClassPathResource("ai/briefing_system.txt").getContentAsString(StandardCharsets.UTF_8);
+        this.briefingSchema = mapper.readTree(new ClassPathResource("ai/briefing_schema.json").getContentAsString(StandardCharsets.UTF_8));
     }
 
     // The one method other code calls: trip context in, checked itinerary out (or a clear error).
     public Itinerary generateItinerary(TripContext context) {
         String raw = callGemini(mapper.writeValueAsString(context));
         return parseAndCheck(raw, context);
+    }
+
+    // Generates and validates a pre-trip destination briefing (BRIEF-01).
+    public TripBriefing generateBriefing(TripContext context) {
+        String raw = callGeminiWithPrompt(mapper.writeValueAsString(context), briefingSystemPrompt, briefingSchema, "a trip briefing");
+        return parseAndCheckBriefing(raw, context);
+    }
+
+    // Split out from generateBriefing so tests can feed in a saved answer without calling Gemini.
+    TripBriefing parseAndCheckBriefing(String raw, TripContext context) {
+        String modelText = extractModelText(raw);
+
+        TripBriefing briefing;
+        try {
+            briefing = mapper.readValue(modelText, TripBriefing.class);
+        } catch (JacksonException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Gemini's answer is not valid briefing JSON: " + e.getOriginalMessage());
+        }
+
+        List<String> problems = checkBriefing(context, briefing);
+        if (!problems.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Gemini's briefing failed " + problems.size() + " check(s): " + String.join("; ", problems));
+        }
+        return briefing;
+    }
+
+    List<String> checkBriefing(TripContext trip, TripBriefing out) {
+        List<String> problems = new ArrayList<>();
+        if (out == null) {
+            return List.of("briefing output is empty");
+        }
+        if (orEmpty(out.customs()).isEmpty()) problems.add("customs list is empty");
+        if (out.language() == null || orEmpty(out.language().phrases()).isEmpty()) problems.add("language phrases are missing");
+        if (orEmpty(out.packingList()).isEmpty()) problems.add("packing_list is empty");
+        if (orEmpty(out.historicalFacts()).isEmpty()) problems.add("historical_facts is empty");
+        if (out.seasonAdvisory() == null || out.seasonAdvisory().summary() == null) problems.add("season_advisory is missing");
+
+        Set<Long> expectedUsers = new HashSet<>();
+        for (TripContext.Participant p : orEmpty(trip.participants())) {
+            if (p.userId() != null) expectedUsers.add(p.userId());
+        }
+        Set<Long> gotUsers = new HashSet<>();
+        for (TripBriefing.SouvenirIdea s : orEmpty(out.souvenirs())) {
+            if (s.userId() != null) gotUsers.add(s.userId());
+        }
+        if (!expectedUsers.isEmpty() && !gotUsers.containsAll(expectedUsers)) {
+            problems.add("souvenirs cover " + gotUsers + ", expected " + expectedUsers);
+        }
+        return problems;
     }
 
     // Split out from generateItinerary so tests can feed in a saved answer without calling Gemini.
@@ -79,11 +164,15 @@ public class GeminiService {
         return itinerary;
     }
 
-    // ---------- the API call ----------
+    // ---------- the API call (with MVP-12 auto-retry on temporary errors) ----------
 
     String callGemini(String tripContextJson) {
+        return callGeminiWithPrompt(tripContextJson, systemPrompt, schema, "an itinerary");
+    }
+
+    String callGeminiWithPrompt(String tripContextJson, String instruction, JsonNode outputSchema, String label) {
         // Checked here, not at startup, so teammates without a key can still run the backend.
-        String key = System.getenv("GEMINI_API_KEY");
+        String key = apiKeyOverride != null ? apiKeyOverride : System.getenv("GEMINI_API_KEY");
         if (key == null || key.isBlank()) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "GEMINI_API_KEY is not set on the backend");
         }
@@ -92,9 +181,9 @@ public class GeminiService {
         // Request shape from Google's Interactions API quickstart (structured output section).
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("model", model);
-        body.put("system_instruction", systemPrompt);
+        body.put("system_instruction", instruction);
         body.put("input", tripContextJson);
-        body.put("response_format", Map.of("type", "text", "mime_type", "application/json", "schema", schema));
+        body.put("response_format", Map.of("type", "text", "mime_type", "application/json", "schema", outputSchema));
 
         HttpRequest request = HttpRequest.newBuilder(URI.create(ENDPOINT))
                 .header("x-goog-api-key", key)
@@ -103,24 +192,52 @@ public class GeminiService {
                 .POST(HttpRequest.BodyPublishers.ofString(mapper.writeValueAsString(body)))
                 .build();
 
-        log.info("Calling {} for an itinerary", model);
-        HttpResponse<String> response;
+        for (int attempt = 1; attempt <= MAX_TRIES; attempt++) {
+            log.info("Calling {} for {} (try {}/{})", model, label, attempt, MAX_TRIES);
+            HttpResponse<String> response;
+            try {
+                response = transport.send(request);
+            } catch (HttpTimeoutException e) {
+                throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT,
+                        "Gemini took longer than " + TIMEOUT.toMinutes() + " minutes");
+            } catch (IOException e) {
+                if (attempt < MAX_TRIES) {
+                    log.warn("Temporary error reaching Gemini on try {}/{}: {}. Retrying...",
+                            attempt, MAX_TRIES, e.getMessage());
+                    waitBeforeRetry();
+                    continue;
+                }
+                throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not reach Gemini: " + e.getMessage());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Gemini call was interrupted");
+            }
+
+            if (response.statusCode() == 200) {
+                return response.body();
+            }
+
+            if (TEMPORARY_HTTP_CODES.contains(response.statusCode()) && attempt < MAX_TRIES) {
+                log.warn("Gemini returned temporary HTTP {} on try {}/{}: {}. Retrying...",
+                        response.statusCode(), attempt, MAX_TRIES, shorten(response.body()));
+                waitBeforeRetry();
+                continue;
+            }
+
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
+                    "Gemini returned HTTP " + response.statusCode() + ": " + shorten(response.body()));
+        }
+
+        throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Gemini failed after " + MAX_TRIES + " tries");
+    }
+
+    private void waitBeforeRetry() {
         try {
-            response = http.send(request, HttpResponse.BodyHandlers.ofString());
-        } catch (HttpTimeoutException e) {
-            throw new ResponseStatusException(HttpStatus.GATEWAY_TIMEOUT, "Gemini took longer than " + TIMEOUT.toMinutes() + " minutes");
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Could not reach Gemini: " + e.getMessage());
+            sleeper.sleep(RETRY_WAIT);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Gemini call was interrupted");
         }
-
-        if (response.statusCode() != 200) {
-            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                    "Gemini returned HTTP " + response.statusCode() + ": " + shorten(response.body()));
-        }
-        return response.body();
     }
 
     // The answer lives at steps[type=model_output].content[type=text].text

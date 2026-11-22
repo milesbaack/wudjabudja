@@ -1,43 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressIndicator?>
 <?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.text.Font?>
 
+<!-- Voting Screen (VOTE-01): Borda Count ranked-choice voting & winner display. -->
 <ScrollPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.wudjabudja.controllers.VotingController"
             fitToWidth="true"
-            style="-fx-background: #f8fafc; -fx-background-color: transparent;">
+            styleClass="page-scroll">
 
     <content>
-        <VBox spacing="24.0" style="-fx-background-color: #f8fafc;">
-            <padding>
-                <Insets top="28.0" right="36.0" bottom="36.0" left="36.0" />
-            </padding>
+        <StackPane alignment="TOP_CENTER" styleClass="app-canvas">
+            <VBox spacing="20.0" maxWidth="1160.0" styleClass="page-container">
 
-            <VBox spacing="4.0">
-                <Label text="Group Activity Voting" textFill="#0f172a">
-                    <font><Font name="System Bold" size="24.0" /></font>
-                </Label>
-                <Label text="Rank daily activity options (1st, 2nd, 3rd) to democratically choose the group itinerary." textFill="#64748b">
-                    <font><Font size="14.0" /></font>
-                </Label>
-            </VBox>
+                <!-- 1. Voting Header & Ballot Control Card -->
+                <VBox spacing="14.0" styleClass="card">
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label text="GROUP VOTING · BORDA COUNT" styleClass="badge, badge-teal" />
+                        <Label text="1st = 3 pts  ·  2nd = 2 pts  ·  3rd = 1 pt  ·  Ties go to lowest cost"
+                               styleClass="meta-text" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button text="Shared Trip" onAction="#goToSharedTrip" styleClass="btn-secondary, btn-sm" />
+                        <Button text="Itinerary" onAction="#goToItinerary" styleClass="btn-secondary, btn-sm" />
+                    </HBox>
 
-            <VBox spacing="16.0"
-                  style="-fx-background-color: #eff6ff; -fx-background-radius: 10; -fx-border-color: #bfdbfe; -fx-border-radius: 10; -fx-padding: 24;">
-                <Label text="⏳ Waiting on Group Intake" textFill="#1e40af">
-                    <font><Font name="System Bold" size="16.0" /></font>
-                </Label>
-                <Label text="Activity generation will unlock once all 4 travelers submit their individual preferences. Currently, 3 of 4 travelers are ready."
-                       textFill="#1e3a8a" wrapText="true">
-                    <font><Font size="13.0" /></font>
-                </Label>
+                    <VBox spacing="4.0">
+                        <Label fx:id="tripTitleLabel" text="Group Activity Voting" styleClass="page-title" wrapText="true" />
+                        <Label fx:id="tripDetailsLabel"
+                               text="Rank the 3 options in each time block from 1st to 3rd choice, then submit your ballot."
+                               styleClass="body-text" wrapText="true" />
+                    </VBox>
+
+                    <!-- Responsive Ballot Toolbar -->
+                    <VBox spacing="10.0" styleClass="well">
+                        <FlowPane hgap="12.0" vgap="10.0" alignment="CENTER_LEFT">
+                            <HBox alignment="CENTER_LEFT" spacing="8.0">
+                                <Label text="Voting as:" styleClass="field-label" />
+                                <ComboBox fx:id="voterCombo" onAction="#handleVoterChanged"
+                                          prefWidth="290.0" promptText="Select traveler..." styleClass="combo-sm" />
+                            </HBox>
+                            <Label fx:id="progressLabel" text="" styleClass="badge, badge-neutral" />
+                        </FlowPane>
+
+                        <Region styleClass="divider" />
+
+                        <HBox alignment="CENTER_LEFT" spacing="10.0">
+                            <Button fx:id="autoRankBtn" text="Auto-Fill Unranked" onAction="#handleAutoRank"
+                                    styleClass="btn-secondary, btn-sm" />
+                            <Button fx:id="clearRanksBtn" text="Clear Ballot" onAction="#handleClearRanks"
+                                    styleClass="btn-ghost, btn-sm" />
+                            <Region HBox.hgrow="ALWAYS" />
+                            <Button fx:id="submitVotesBtn" text="Submit Votes" onAction="#handleSubmitVotes"
+                                    styleClass="btn-primary" />
+                        </HBox>
+                    </VBox>
+
+                    <!-- Busy Spinner + Feedback -->
+                    <HBox fx:id="busyBox" alignment="CENTER_LEFT" spacing="12.0"
+                          visible="false" managed="false" styleClass="banner-busy">
+                        <ProgressIndicator prefWidth="20.0" prefHeight="20.0" />
+                        <Label fx:id="busyLabel" text="" styleClass="banner-busy-text" wrapText="true" />
+                    </HBox>
+
+                    <Label fx:id="statusLabel" text="" wrapText="true" maxWidth="Infinity"
+                           visible="false" managed="false" />
+                </VBox>
+
+                <!-- 2. Winning Group Itinerary Banner -->
+                <VBox fx:id="winnersCard" spacing="12.0" visible="false" managed="false" styleClass="banner-consensus">
+                    <HBox alignment="CENTER_LEFT" spacing="10.0">
+                        <Label text="WINNING GROUP ITINERARY" styleClass="badge, badge-amber" />
+                        <Label fx:id="winnersSubtitleLabel"
+                               text="Highest Borda Count score wins each time block (ties settled by lowest cost)."
+                               style="-fx-text-fill: #92400E; -fx-font-size: 12px;" wrapText="true" />
+                        <Region HBox.hgrow="ALWAYS" />
+                        <Button fx:id="refreshWinnersBtn" text="Refresh Winners" onAction="#handleRefreshWinners"
+                                styleClass="btn-secondary, btn-sm" />
+                    </HBox>
+                    <VBox fx:id="winnersListBox" spacing="8.0" />
+                </VBox>
+
+                <!-- 3. Empty State -->
+                <VBox fx:id="emptyStateBox" spacing="12.0" alignment="CENTER"
+                      visible="false" managed="false" styleClass="empty-state">
+                    <Label text="No itinerary options to vote on yet" styleClass="section-title" />
+                    <Label text="Generate an itinerary first on the Shared Trip or Itinerary screen, then return here for each traveler to rank their top 3 choices."
+                           styleClass="body-text" wrapText="true" maxWidth="540.0"
+                           style="-fx-text-alignment: center;" />
+                    <Button text="Go to Itinerary &amp; Generate" onAction="#goToItinerary" styleClass="btn-primary" />
+                </VBox>
+
+                <!-- 4. Day & Time Block Voting Cards -->
+                <VBox fx:id="daysVotingBox" spacing="20.0" />
+
             </VBox>
-        </VBox>
+        </StackPane>
     </content>
 </ScrollPane>
